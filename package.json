@@ -1,0 +1,35 @@
+{
+  "name": "agir-safely",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "expo": "^50.0.0",
+    "expo-status-bar": "^1.0.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-native": "0.74.7",
+    "react-native-web": "^0.20.0",
+    "@react-navigation/native": "latest",
+    "@react-navigation/bottom-tabs": "latest",
+    "@react-navigation/stack": "latest",
+    "react-native-gesture-handler": "latest",
+    "react-native-safe-area-context": "latest",
+    "react-native-screens": "latest",
+    "react-native-vector-icons": "latest",
+    "zod": "^3.24.1",
+    "clsx": "^2.1.1",
+    "date-fns": "4.1.0",
+    "react-hook-form": "^7.54.1",
+    "@hookform/resolvers": "^3.9.1",
+    "@types/react": "~18.2.45"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
