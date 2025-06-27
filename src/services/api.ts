@@ -34,15 +34,21 @@ class ApiService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Network error' }));
-        throw new Error(errorData.message || `HTTP ${response.status}`);
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { message: 'Network error' };
+        }
+        // Throw the full error object so the frontend can access errorData.errors
+        throw errorData;
       }
 
       return await response.json();
     } catch (error) {
       console.error('API Request failed:', error);
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Network connection failed. Please check your internet connection.');
+      if (error instanceof TypeError && error.message && error.message.includes('fetch')) {
+        throw { message: 'Network connection failed. Please check your internet connection.' };
       }
       throw error;
     }

@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const BRAND_COLOR = '#2563eb';
+const MIN_PASSWORD_LENGTH = 6;
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -23,6 +24,7 @@ const LoginScreen: React.FC = () => {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [cardAnim] = useState(new Animated.Value(0));
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const { login, register, isLoading } = useAuth();
 
@@ -34,6 +36,14 @@ const LoginScreen: React.FC = () => {
     }).start();
   }, []);
 
+  React.useEffect(() => {
+    if (!isLogin && password.length > 0 && password.length < MIN_PASSWORD_LENGTH) {
+      setPasswordError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+    } else {
+      setPasswordError(null);
+    }
+  }, [password, isLogin]);
+
   const handleSubmit = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -43,15 +53,22 @@ const LoginScreen: React.FC = () => {
       Alert.alert('Error', 'Please enter your name');
       return;
     }
+    if (!isLogin && password.length < MIN_PASSWORD_LENGTH) {
+      Alert.alert('Error', `Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      return;
+    }
     try {
       let success;
       if (isLogin) {
         success = await login(email, password);
+        if (!success) {
+          Alert.alert('Error', 'Login failed');
+        }
       } else {
-        success = await register(email, password, name);
-      }
-      if (!success) {
-        Alert.alert('Error', isLogin ? 'Login failed' : 'Registration failed');
+        const result = await register(email, password, name);
+        if (!result.success) {
+          Alert.alert('Registration Error', result.error || 'Registration failed');
+        }
       }
     } catch (error) {
       Alert.alert('Error', 'An unexpected error occurred');
@@ -115,7 +132,10 @@ const LoginScreen: React.FC = () => {
             />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+        {(!isLogin && passwordError) && (
+          <Text style={styles.passwordError}>{passwordError}</Text>
+        )}
+        <TouchableOpacity style={[styles.button, (!isLogin && !!passwordError) && styles.buttonDisabled]} onPress={handleSubmit} disabled={isLoading || (!isLogin && !!passwordError)}>
           <Text style={styles.buttonText}>{isLogin ? 'Login' : 'Register'}</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -227,6 +247,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: '#666',
+  },
+  passwordError: {
+    color: '#dc2626',
+    fontSize: 13,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  buttonDisabled: {
+    backgroundColor: '#e5e7eb',
   },
 });
 

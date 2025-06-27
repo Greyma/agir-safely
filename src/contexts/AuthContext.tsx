@@ -13,7 +13,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<boolean>;
+  register: (email: string, password: string, name: string) => Promise<{ success: boolean, error?: string }>;
   logout: () => Promise<void>;
   resetAuth: () => Promise<void>;
   isAuthenticated: boolean;
@@ -90,23 +90,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+  const register = async (email: string, password: string, name: string): Promise<{ success: boolean, error?: string }> => {
     try {
       setIsLoading(true);
-      
       const data = await apiService.register(email, password, name);
       const { token: newToken, user: userData } = data;
-      
-      // Store token and user data
       await AsyncStorage.setItem('authToken', newToken);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
-      
       setToken(newToken);
       setUser(userData);
-      return true;
-    } catch (error) {
+      return { success: true };
+    } catch (error: any) {
       console.error('Registration error:', error);
-      return false;
+      // Try to extract error message from backend response
+      let errorMsg = 'Registration failed';
+      if (error && error.message) errorMsg = error.message;
+      if (error && error.errors && Array.isArray(error.errors)) errorMsg += '\n' + error.errors.join('\n');
+      return { success: false, error: errorMsg };
     } finally {
       setIsLoading(false);
     }
