@@ -3,10 +3,11 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { createStackNavigator } from "@react-navigation/stack"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { MaterialIcons } from '@expo/vector-icons'
-import { TouchableOpacity, Text, StyleSheet } from 'react-native'
+import { TouchableOpacity, Text, StyleSheet, View, ActivityIndicator } from 'react-native'
 import type { ParamListBase, RouteProp } from '@react-navigation/native'
 import { AuthProvider, useAuth } from './src/contexts/AuthContext'
 import LoginScreen from './src/screens/LoginScreen'
+import React from 'react'
 
 // Import screens
 import AccidentologyScreen from "./src/screens/AccidentologyScreen"
@@ -19,9 +20,58 @@ import ProductDetailScreen from "./src/screens/ProductDetailScreen"
 import AppointmentScreen from "./src/screens/AppointmentScreen"
 import EquipmentDetailScreen from "./src/screens/EquipmentDetailScreen"
 import PPEDetailScreen from "./src/screens/PPEDetailScreen"
+import DebugScreen from "./src/screens/DebugScreen"
 
 const Tab = createBottomTabNavigator()
 const Stack = createStackNavigator()
+
+// Loading Screen Component
+const LoadingScreen = () => (
+  <View style={styles.loadingContainer}>
+    <ActivityIndicator size="large" color="#2563eb" />
+    <Text style={styles.loadingText}>Loading...</Text>
+  </View>
+);
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('App Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>Something went wrong</Text>
+          <Text style={styles.errorText}>
+            Please restart the app or contact support if the problem persists.
+          </Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => this.setState({ hasError: false })}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Stack navigators for each tab
 function AccidentologyStack() {
@@ -139,11 +189,33 @@ function PPEStack() {
   )
 }
 
+function DebugStack() {
+  const { logout } = useAuth();
+  
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="DebugMain" 
+        component={DebugScreen} 
+        options={{ 
+          title: "Debug",
+          headerRight: () => (
+            <TouchableOpacity onPress={logout} style={styles.logoutButton}>
+              <MaterialIcons name="logout" size={24} color="#2563eb" />
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
+          ),
+        }} 
+      />
+    </Stack.Navigator>
+  )
+}
+
 function MainApp() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return null; // Or a loading screen
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
@@ -168,6 +240,8 @@ function MainApp() {
                 iconName = "build"
               } else if (route.name === "EPI") {
                 iconName = "security"
+              } else if (route.name === "Debug") {
+                iconName = "bug-report"
               }
 
               return <MaterialIcons name={iconName as any || "help"} size={size} color={color} />
@@ -182,6 +256,7 @@ function MainApp() {
           <Tab.Screen name="Maladies" component={DiseasesStack} />
           <Tab.Screen name="Maintenance" component={MaintenanceStack} />
           <Tab.Screen name="EPI" component={PPEStack} />
+          <Tab.Screen name="Debug" component={DebugStack} />
         </Tab.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
@@ -201,12 +276,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#2563eb',
+    marginTop: 10,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorTitle: {
+    color: '#2563eb',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  errorText: {
+    color: '#6b7280',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#2563eb',
+    padding: 10,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
 
 export default function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <ErrorBoundary>
+        <MainApp />
+      </ErrorBoundary>
     </AuthProvider>
   );
 }

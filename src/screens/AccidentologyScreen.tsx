@@ -1,56 +1,87 @@
 "use client"
 
-import { useState } from "react"
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from "react-native"
+import { useState, useEffect } from "react"
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Icon from "react-native-vector-icons/MaterialIcons"
+import { apiService } from "../services/api"
 
 interface Accident {
-  id: string
-  date: string
-  lieu: string
+  _id: string
+  title: string
   description: string
-  gravite: "Faible" | "Moyenne" | "Élevée"
+  date: string
+  location: string
+  severity: "minor" | "moderate" | "severe" | "critical"
+  type: string
+  status: string
+  reportedBy: {
+    name: string
+    email: string
+  }
 }
 
-const mockAccidents: Accident[] = [
-  {
-    id: "1",
-    date: "2024-01-15",
-    lieu: "Atelier A - Zone de découpe",
-    description: "Coupure mineure à la main droite lors de la manipulation d'une pièce métallique",
-    gravite: "Faible",
-  },
-  {
-    id: "2",
-    date: "2024-01-10",
-    lieu: "Entrepôt B - Allée 3",
-    description: "Chute de cartons depuis une étagère haute, contusion à l'épaule",
-    gravite: "Moyenne",
-  },
-  {
-    id: "3",
-    date: "2024-01-05",
-    lieu: "Zone de production - Ligne 2",
-    description: "Projection de liquide chimique, brûlure légère au bras",
-    gravite: "Moyenne",
-  },
-]
-
 export default function AccidentologyScreen({ navigation }: any) {
-  const [accidents, setAccidents] = useState<Accident[]>(mockAccidents)
+  const [accidents, setAccidents] = useState<Accident[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
-  const getGravityColor = (gravite: string) => {
-    switch (gravite) {
-      case "Faible":
+  const fetchAccidents = async () => {
+    try {
+      setLoading(true)
+      const data = await apiService.getAccidents()
+      setAccidents(data)
+    } catch (error) {
+      console.error('Error fetching accidents:', error)
+      Alert.alert('Erreur', 'Impossible de charger les accidents')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const onRefresh = async () => {
+    setRefreshing(true)
+    await fetchAccidents()
+    setRefreshing(false)
+  }
+
+  useEffect(() => {
+    fetchAccidents()
+  }, [])
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "minor":
         return "#10b981"
-      case "Moyenne":
+      case "moderate":
         return "#f59e0b"
-      case "Élevée":
+      case "severe":
         return "#ef4444"
+      case "critical":
+        return "#7c2d12"
       default:
         return "#6b7280"
     }
+  }
+
+  const getSeverityText = (severity: string) => {
+    switch (severity) {
+      case "minor":
+        return "Faible"
+      case "moderate":
+        return "Moyenne"
+      case "severe":
+        return "Élevée"
+      case "critical":
+        return "Critique"
+      default:
+        return severity
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('fr-FR')
   }
 
   const showLocationMap = () => {
@@ -60,19 +91,34 @@ export default function AccidentologyScreen({ navigation }: any) {
   const renderAccident = ({ item }: { item: Accident }) => (
     <View style={styles.accidentCard}>
       <View style={styles.accidentHeader}>
-        <Text style={styles.accidentDate}>{item.date}</Text>
-        <View style={[styles.gravityBadge, { backgroundColor: getGravityColor(item.gravite) }]}>
-          <Text style={styles.gravityText}>{item.gravite}</Text>
+        <Text style={styles.accidentDate}>{formatDate(item.date)}</Text>
+        <View style={[styles.gravityBadge, { backgroundColor: getSeverityColor(item.severity) }]}>
+          <Text style={styles.gravityText}>{getSeverityText(item.severity)}</Text>
         </View>
       </View>
-      <Text style={styles.accidentLocation}>{item.lieu}</Text>
+      <Text style={styles.accidentTitle}>{item.title}</Text>
+      <Text style={styles.accidentLocation}>{item.location}</Text>
       <Text style={styles.accidentDescription}>{item.description}</Text>
-      <TouchableOpacity style={styles.mapButton} onPress={showLocationMap}>
-        <Icon name="location-on" size={16} color="#2563eb" />
-        <Text style={styles.mapButtonText}>Voir sur la carte</Text>
-      </TouchableOpacity>
+      <View style={styles.accidentFooter}>
+        <Text style={styles.reportedBy}>Signalé par: {item.reportedBy?.name || 'Utilisateur'}</Text>
+        <TouchableOpacity style={styles.mapButton} onPress={showLocationMap}>
+          <Icon name="location-on" size={16} color="#2563eb" />
+          <Text style={styles.mapButtonText}>Voir sur la carte</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   )
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2563eb" />
+          <Text style={styles.loadingText}>Chargement des accidents...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -89,11 +135,15 @@ export default function AccidentologyScreen({ navigation }: any) {
           <Text style={styles.statLabel}>Total accidents</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{accidents.filter((a) => a.gravite === "Élevée").length}</Text>
+          <Text style={styles.statNumber}>{accidents.filter((a) => a.severity === "severe" || a.severity === "critical").length}</Text>
           <Text style={styles.statLabel}>Graves</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statNumber}>{accidents.filter((a) => {
+            const accidentDate = new Date(a.date)
+            const now = new Date()
+            return accidentDate.getMonth() === now.getMonth() && accidentDate.getFullYear() === now.getFullYear()
+          }).length}</Text>
           <Text style={styles.statLabel}>Ce mois</Text>
         </View>
       </View>
@@ -101,9 +151,19 @@ export default function AccidentologyScreen({ navigation }: any) {
       <FlatList
         data={accidents}
         renderItem={renderAccident}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         style={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Icon name="warning" size={48} color="#64748b" />
+            <Text style={styles.emptyText}>Aucun accident enregistré</Text>
+            <Text style={styles.emptySubtext}>Les accidents apparaîtront ici une fois signalés</Text>
+          </View>
+        }
       />
     </SafeAreaView>
   )
@@ -201,6 +261,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+  accidentTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 8,
+  },
   accidentLocation: {
     fontSize: 16,
     fontWeight: "600",
@@ -213,6 +279,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 12,
   },
+  accidentFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  reportedBy: {
+    fontSize: 14,
+    color: "#64748b",
+  },
   mapButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -222,5 +297,32 @@ const styles = StyleSheet.create({
     color: "#2563eb",
     fontSize: 14,
     fontWeight: "500",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2563eb",
+    marginTop: 16,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#64748b",
+    marginBottom: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#64748b",
   },
 })

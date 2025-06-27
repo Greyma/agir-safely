@@ -61,6 +61,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Error loading stored auth:', error);
+      // Don't throw error, just clear auth data and continue
       await resetAuth();
     } finally {
       setIsLoading(false);

@@ -1,6 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getNetworkConfig, getBestApiUrl } from '../config/network';
 
-const API_BASE_URL = 'http://192.168.1.7:5000'; // Express backend URL for mobile testing
+// Get API base URL from configuration
+let API_BASE_URL = getNetworkConfig().baseUrl;
+
+// Initialize the best available API URL
+const initializeApiUrl = async () => {
+  try {
+    API_BASE_URL = await getBestApiUrl();
+    console.log('Initialized API URL:', API_BASE_URL);
+  } catch (error) {
+    console.error('Failed to initialize API URL:', error);
+    // Keep the default URL
+  }
+};
+
+// Initialize on module load
+initializeApiUrl();
 
 class ApiService {
   private async getAuthHeaders() {
@@ -11,50 +27,45 @@ class ApiService {
     };
   }
 
-  async login(email: string, password: string) {
+  private async makeRequest(url: string, options: RequestInit) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      const response = await fetch(url, {
+        ...options,
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
+        const errorData = await response.json().catch(() => ({ message: 'Network error' }));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
       }
 
-      const data = await response.json();
-      return data;
+      return await response.json();
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('API Request failed:', error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Network connection failed. Please check your internet connection.');
+      }
       throw error;
     }
   }
 
+  async login(email: string, password: string) {
+    return this.makeRequest(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
   async register(email: string, password: string, name: string) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password, name }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
-    }
+    return this.makeRequest(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password, name }),
+    });
   }
 
   async getProtectedData(endpoint: string) {
@@ -123,6 +134,88 @@ class ApiService {
 
   async getProfile() {
     return this.getProtectedData('/api/profile');
+  }
+
+  // Accident-related methods
+  async getAccidents() {
+    return this.getProtectedData('/api/accidents');
+  }
+
+  async createAccident(accidentData: any) {
+    return this.postProtectedData('/api/accidents', accidentData);
+  }
+
+  async getAccidentById(id: string) {
+    return this.getProtectedData(`/api/accidents/${id}`);
+  }
+
+  async updateAccident(id: string, accidentData: any) {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/api/accidents/${id}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(accidentData),
+      });
+
+      if (response.status === 401) {
+        await AsyncStorage.removeItem('authToken');
+        await AsyncStorage.removeItem('user');
+        throw new Error('Authentication required');
+      }
+
+      if (!response.ok) {
+        throw new Error('Request failed');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('API error:', error);
+      throw error;
+    }
+  }
+
+  async deleteAccident(id: string) {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/api/accidents/${id}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      if (response.status === 401) {
+        await AsyncStorage.removeItem('authToken');
+        await AsyncStorage.removeItem('user');
+        throw new Error('Authentication required');
+      }
+
+      if (!response.ok) {
+        throw new Error('Request failed');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('API error:', error);
+      throw error;
+    }
+  }
+
+  // Test connection method
+  async testConnection() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/`, {
+        method: 'GET',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Connection test failed:', error);
+      return false;
+    }
+  }
+
+  // Get current API URL for debugging
+  getCurrentApiUrl() {
+    return API_BASE_URL;
   }
 }
 

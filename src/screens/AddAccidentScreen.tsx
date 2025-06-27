@@ -1,25 +1,88 @@
 "use client"
 
 import { useState } from "react"
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from "react-native"
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Icon from "react-native-vector-icons/MaterialIcons"
+import { apiService } from "../services/api"
 
 export default function AddAccidentScreen({ navigation }: any) {
+  const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [lieu, setLieu] = useState("")
+  const [location, setLocation] = useState("")
   const [date, setDate] = useState("")
-  const [gravite, setGravite] = useState<"Faible" | "Moyenne" | "Élevée">("Faible")
+  const [severity, setSeverity] = useState<"minor" | "moderate" | "severe" | "critical">("minor")
+  const [type, setType] = useState<"slip" | "fall" | "cut" | "burn" | "chemical" | "electrical" | "mechanical" | "other">("other")
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = () => {
-    if (!description || !lieu || !date) {
+  const getSeverityText = (severity: string) => {
+    switch (severity) {
+      case "minor":
+        return "Faible"
+      case "moderate":
+        return "Moyenne"
+      case "severe":
+        return "Élevée"
+      case "critical":
+        return "Critique"
+      default:
+        return severity
+    }
+  }
+
+  const getTypeText = (type: string) => {
+    switch (type) {
+      case "slip":
+        return "Glissade"
+      case "fall":
+        return "Chute"
+      case "cut":
+        return "Coupure"
+      case "burn":
+        return "Brûlure"
+      case "chemical":
+        return "Chimique"
+      case "electrical":
+        return "Électrique"
+      case "mechanical":
+        return "Mécanique"
+      case "other":
+        return "Autre"
+      default:
+        return type
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!title || !description || !location || !date) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs obligatoires")
       return
     }
 
-    Alert.alert("Accident enregistré", "L'accident a été enregistré avec succès", [
-      { text: "OK", onPress: () => navigation.goBack() },
-    ])
+    try {
+      setLoading(true)
+      
+      const accidentData = {
+        title,
+        description,
+        location,
+        date: new Date(date).toISOString(),
+        severity,
+        type,
+        status: 'reported'
+      }
+
+      await apiService.createAccident(accidentData)
+      
+      Alert.alert("Succès", "L'accident a été enregistré avec succès", [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ])
+    } catch (error) {
+      console.error('Error creating accident:', error)
+      Alert.alert("Erreur", "Impossible d'enregistrer l'accident. Veuillez réessayer.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const addPhoto = () => {
@@ -29,6 +92,16 @@ export default function AddAccidentScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
+        <View style={styles.section}>
+          <Text style={styles.label}>Titre *</Text>
+          <TextInput
+            style={styles.input}
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Titre de l'accident"
+          />
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.label}>Description *</Text>
           <TextInput
@@ -45,28 +118,50 @@ export default function AddAccidentScreen({ navigation }: any) {
           <Text style={styles.label}>Lieu *</Text>
           <TextInput
             style={styles.input}
-            value={lieu}
-            onChangeText={setLieu}
+            value={location}
+            onChangeText={setLocation}
             placeholder="Ex: Atelier A - Zone de découpe"
           />
         </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>Date *</Text>
-          <TextInput style={styles.input} value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" />
+          <TextInput 
+            style={styles.input} 
+            value={date} 
+            onChangeText={setDate} 
+            placeholder="YYYY-MM-DD" 
+          />
         </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>Gravité</Text>
           <View style={styles.gravityContainer}>
-            {(["Faible", "Moyenne", "Élevée"] as const).map((level) => (
+            {(["minor", "moderate", "severe", "critical"] as const).map((level) => (
               <TouchableOpacity
                 key={level}
-                style={[styles.gravityButton, gravite === level && styles.gravityButtonActive]}
-                onPress={() => setGravite(level)}
+                style={[styles.gravityButton, severity === level && styles.gravityButtonActive]}
+                onPress={() => setSeverity(level)}
               >
-                <Text style={[styles.gravityButtonText, gravite === level && styles.gravityButtonTextActive]}>
-                  {level}
+                <Text style={[styles.gravityButtonText, severity === level && styles.gravityButtonTextActive]}>
+                  {getSeverityText(level)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.label}>Type d'accident</Text>
+          <View style={styles.typeContainer}>
+            {(["slip", "fall", "cut", "burn", "chemical", "electrical", "mechanical", "other"] as const).map((accidentType) => (
+              <TouchableOpacity
+                key={accidentType}
+                style={[styles.typeButton, type === accidentType && styles.typeButtonActive]}
+                onPress={() => setType(accidentType)}
+              >
+                <Text style={[styles.typeButtonText, type === accidentType && styles.typeButtonTextActive]}>
+                  {getTypeText(accidentType)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -81,8 +176,16 @@ export default function AddAccidentScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitButtonText}>Enregistrer l'accident</Text>
+        <TouchableOpacity 
+          style={[styles.submitButton, loading && styles.submitButtonDisabled]} 
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.submitButtonText}>Enregistrer l'accident</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -172,9 +275,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
   },
+  submitButtonDisabled: {
+    backgroundColor: "#e2e8f0",
+  },
   submitButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  typeContainer: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  typeButton: {
+    flex: 1,
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 8,
+    padding: 12,
+    alignItems: "center",
+  },
+  typeButtonActive: {
+    backgroundColor: "#2563eb",
+    borderColor: "#2563eb",
+  },
+  typeButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#64748b",
+  },
+  typeButtonTextActive: {
+    color: "white",
   },
 })

@@ -1,0 +1,65 @@
+// Network configuration for different environments
+export const NETWORK_CONFIG = {
+  // Development URLs - modify these based on your setup
+  development: {
+    baseUrl: 'http://192.168.1.5:5000',
+    timeout: 10000,
+  },
+  // Android Emulator URL
+  androidEmulator: {
+    baseUrl: 'http://10.0.2.2:5000',
+    timeout: 10000,
+  },
+  // Local development
+  local: {
+    baseUrl: 'http://localhost:5000',
+    timeout: 10000,
+  },
+};
+
+// Get the appropriate configuration based on environment
+export const getNetworkConfig = () => {
+  // You can modify this logic based on your needs
+  // For now, return development config
+  return NETWORK_CONFIG.development;
+};
+
+// Helper function to test network connectivity
+export const testNetworkConnection = async (url: string): Promise<boolean> => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(`${url}/`, {
+      method: 'GET',
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch (error) {
+    console.error('Network test failed for URL:', url, error);
+    return false;
+  }
+};
+
+// Get the best available API URL
+export const getBestApiUrl = async (): Promise<string> => {
+  const urls = [
+    NETWORK_CONFIG.development.baseUrl,
+    NETWORK_CONFIG.androidEmulator.baseUrl,
+    NETWORK_CONFIG.local.baseUrl,
+  ];
+
+  for (const url of urls) {
+    const isAvailable = await testNetworkConnection(url);
+    if (isAvailable) {
+      console.log('Found working API URL:', url);
+      return url;
+    }
+  }
+
+  // Return default if none work
+  console.warn('No working API URL found, using default');
+  return NETWORK_CONFIG.development.baseUrl;
+}; 
