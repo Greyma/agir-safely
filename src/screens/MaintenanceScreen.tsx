@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { MaterialIcons } from '@expo/vector-icons'
 
 interface Equipment {
   id: string
@@ -110,9 +110,9 @@ export default function MaintenanceScreen({ navigation }: any) {
           <Text style={styles.equipmentZone}>{item.zone}</Text>
         </View>
         <View style={styles.statusContainer}>
-          {item.alerteActive && <Icon name="warning" size={16} color="#f59e0b" style={styles.alertIcon} />}
+          {item.alerteActive && <MaterialIcons name="warning" size={16} color="#f59e0b" style={styles.alertIcon} />}
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.etat) }]}>
-            <Icon name={getStatusIcon(item.etat)} size={14} color="white" />
+            <MaterialIcons name={getStatusIcon(item.etat)} size={14} color="white" />
             <Text style={styles.statusText}>{item.etat}</Text>
           </View>
         </View>
@@ -162,7 +162,7 @@ export default function MaintenanceScreen({ navigation }: any) {
 
       {alertsCount > 0 && (
         <View style={styles.alertBanner}>
-          <Icon name="warning" size={20} color="#f59e0b" />
+          <MaterialIcons name="warning" size={20} color="#f59e0b" />
           <Text style={styles.alertText}>
             {alertsCount} équipement{alertsCount > 1 ? "s" : ""} nécessite{alertsCount > 1 ? "nt" : ""} une attention
           </Text>
@@ -171,17 +171,17 @@ export default function MaintenanceScreen({ navigation }: any) {
 
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <Icon name="check-circle" size={24} color="#10b981" />
+          <MaterialIcons name="check-circle" size={24} color="#10b981" />
           <Text style={styles.statNumber}>{equipments.filter((eq) => eq.etat === "Fonctionnel").length}</Text>
           <Text style={styles.statLabel}>Fonctionnels</Text>
         </View>
         <View style={styles.statCard}>
-          <Icon name="build" size={24} color="#f59e0b" />
+          <MaterialIcons name="build" size={24} color="#f59e0b" />
           <Text style={styles.statNumber}>{equipments.filter((eq) => eq.etat === "En maintenance").length}</Text>
           <Text style={styles.statLabel}>En maintenance</Text>
         </View>
         <View style={styles.statCard}>
-          <Icon name="error" size={24} color="#ef4444" />
+          <MaterialIcons name="error" size={24} color="#ef4444" />
           <Text style={styles.statNumber}>{equipments.filter((eq) => eq.etat === "En panne").length}</Text>
           <Text style={styles.statLabel}>En panne</Text>
         </View>

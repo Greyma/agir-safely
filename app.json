@@ -1,16 +1,48 @@
 {
   "expo": {
-    "name": "my-v0-project",
-    "slug": "my-v0-project",
-    "version": "0.1.0",
+    "name": "Agir Safely",
+    "slug": "agir-safely",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./public/placeholder-logo.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./public/placeholder-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2563eb"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./public/placeholder-logo.png",
+        "backgroundColor": "#2563eb"
+      },
+      "package": "com.agirsafely.app",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./public/placeholder-logo.png"
+    },
     "sdkVersion": "53.0.0",
     "platforms": [
       "ios",
       "android",
       "web"
     ],
-    "android": {
-      "package": "com.agirsafely"
-    }
+    "plugins": [
+      
+    ]
   }
 }

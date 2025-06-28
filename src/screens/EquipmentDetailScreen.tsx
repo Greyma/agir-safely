@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { MaterialIcons } from '@expo/vector-icons'
 
 interface Intervention {
   id: string
@@ -89,7 +89,7 @@ export default function EquipmentDetailScreen({ route }: any) {
             <Text style={styles.equipmentZone}>{equipment.zone}</Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(equipment.etat) }]}>
-            <Icon name={getStatusIcon(equipment.etat)} size={16} color="white" />
+            <MaterialIcons name={getStatusIcon(equipment.etat)} size={16} color="white" />
             <Text style={styles.statusText}>{equipment.etat}</Text>
           </View>
         </View>
@@ -108,7 +108,7 @@ export default function EquipmentDetailScreen({ route }: any) {
           </View>
           {equipment.alerteActive && (
             <View style={styles.alertSection}>
-              <Icon name="warning" size={16} color="#f59e0b" />
+              <MaterialIcons name="warning" size={16} color="#f59e0b" />
               <Text style={styles.alertText}>Maintenance requise bientôt</Text>
             </View>
           )}
@@ -118,11 +118,11 @@ export default function EquipmentDetailScreen({ route }: any) {
           <Text style={styles.cardTitle}>Actions Rapides</Text>
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.actionButton} onPress={addIntervention}>
-              <Icon name="add" size={20} color="#2563eb" />
+              <MaterialIcons name="add" size={20} color="#2563eb" />
               <Text style={styles.actionButtonText}>Nouvelle intervention</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionButton} onPress={generateReport}>
-              <Icon name="description" size={20} color="#2563eb" />
+              <MaterialIcons name="description" size={20} color="#2563eb" />
               <Text style={styles.actionButtonText}>Générer rapport</Text>
             </TouchableOpacity>
           </View>
@@ -146,7 +146,7 @@ export default function EquipmentDetailScreen({ route }: any) {
               <Text style={styles.interventionDescription}>{intervention.description}</Text>
               <View style={styles.interventionFooter}>
                 <View style={styles.durationContainer}>
-                  <Icon name="schedule" size={14} color="#64748b" />
+                  <MaterialIcons name="schedule" size={14} color="#64748b" />
                   <Text style={styles.interventionDuration}>{intervention.duree}</Text>
                 </View>
               </View>

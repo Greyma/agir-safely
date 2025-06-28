@@ -1,6 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native"
+"use client"
+
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { MaterialIcons } from '@expo/vector-icons'
 
 export default function ProductDetailScreen({ route }: any) {
   const { product } = route.params
@@ -33,7 +35,7 @@ export default function ProductDetailScreen({ route }: any) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Niveau de Danger</Text>
           <View style={[styles.dangerIndicator, { backgroundColor: getDangerColor(product.dangerLevel) }]}>
-            <Icon name="warning" size={20} color="white" />
+            <MaterialIcons name="warning" size={20} color="white" />
             <Text style={styles.dangerText}>{product.dangerLevel}</Text>
           </View>
         </View>
@@ -54,7 +56,7 @@ export default function ProductDetailScreen({ route }: any) {
           <Text style={styles.sectionTitle}>Risques Identifiés</Text>
           {product.risques.map((risque: string, index: number) => (
             <View key={index} style={styles.riskItem}>
-              <Icon name="error-outline" size={16} color="#ef4444" />
+              <MaterialIcons name="error-outline" size={16} color="#ef4444" />
               <Text style={styles.riskText}>{risque}</Text>
             </View>
           ))}
@@ -64,7 +66,7 @@ export default function ProductDetailScreen({ route }: any) {
           <Text style={styles.sectionTitle}>Précautions d'Usage</Text>
           {precautions.map((precaution, index) => (
             <View key={index} style={styles.precautionItem}>
-              <Icon name="check-circle" size={16} color="#10b981" />
+              <MaterialIcons name="check-circle" size={16} color="#10b981" />
               <Text style={styles.precautionText}>{precaution}</Text>
             </View>
           ))}
@@ -74,14 +76,14 @@ export default function ProductDetailScreen({ route }: any) {
           <Text style={styles.sectionTitle}>Équipement de Protection Requis</Text>
           {equipmentRequired.map((equipment, index) => (
             <View key={index} style={styles.equipmentItem}>
-              <Icon name="security" size={16} color="#2563eb" />
+              <MaterialIcons name="security" size={16} color="#2563eb" />
               <Text style={styles.equipmentText}>{equipment}</Text>
             </View>
           ))}
         </View>
 
         <TouchableOpacity style={styles.emergencyButton}>
-          <Icon name="phone" size={20} color="white" />
+          <MaterialIcons name="phone" size={20} color="white" />
           <Text style={styles.emergencyText}>Numéro d'urgence: 15</Text>
         </TouchableOpacity>
       </ScrollView>

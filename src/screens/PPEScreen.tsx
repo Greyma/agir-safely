@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { MaterialIcons } from '@expo/vector-icons'
 
 interface PPE {
   id: string
@@ -124,7 +124,7 @@ export default function PPEScreen({ navigation }: any) {
       </View>
 
       <View style={styles.zoneContainer}>
-        <Icon name="location-on" size={16} color="#64748b" />
+        <MaterialIcons name="location-on" size={16} color="#64748b" />
         <Text style={styles.zoneText}>{item.zone}</Text>
       </View>
 
@@ -155,7 +155,7 @@ export default function PPEScreen({ navigation }: any) {
 
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.damageButton} onPress={() => reportDamage(item.id, item.nom)}>
-          <Icon name="report-problem" size={16} color="#ef4444" />
+          <MaterialIcons name="report-problem" size={16} color="#ef4444" />
           <Text style={styles.damageButtonText}>Signaler dommage</Text>
         </TouchableOpacity>
       </View>
@@ -170,7 +170,7 @@ export default function PPEScreen({ navigation }: any) {
 
       <View style={styles.alertsContainer}>
         <View style={styles.alertCard}>
-          <Icon name="warning" size={20} color="#f59e0b" />
+          <MaterialIcons name="warning" size={20} color="#f59e0b" />
           <Text style={styles.alertText}>
             {ppeList.filter((ppe) => ppe.disponible === 0).length} EPI en rupture de stock
           </Text>
@@ -179,17 +179,17 @@ export default function PPEScreen({ navigation }: any) {
 
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <Icon name="security" size={24} color="#2563eb" />
+          <MaterialIcons name="security" size={24} color="#2563eb" />
           <Text style={styles.statNumber}>{ppeList.length}</Text>
           <Text style={styles.statLabel}>Types d'EPI</Text>
         </View>
         <View style={styles.statCard}>
-          <Icon name="check-circle" size={24} color="#10b981" />
+          <MaterialIcons name="check-circle" size={24} color="#10b981" />
           <Text style={styles.statNumber}>{ppeList.filter((ppe) => ppe.etat === "Bon").length}</Text>
           <Text style={styles.statLabel}>En bon état</Text>
         </View>
         <View style={styles.statCard}>
-          <Icon name="error" size={24} color="#ef4444" />
+          <MaterialIcons name="error" size={24} color="#ef4444" />
           <Text style={styles.statNumber}>{ppeList.filter((ppe) => ppe.disponible === 0).length}</Text>
           <Text style={styles.statLabel}>En rupture</Text>
         </View>

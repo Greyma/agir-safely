@@ -5,6 +5,11 @@ export const NETWORK_CONFIG = {
     baseUrl: 'http://192.168.1.5:5000',
     timeout: 10000,
   },
+  // Additional development URL
+  development2: {
+    baseUrl: 'http://192.168.1.7:5000',
+    timeout: 10000,
+  },
   // Android Emulator URL
   androidEmulator: {
     baseUrl: 'http://10.0.2.2:5000',
@@ -47,6 +52,7 @@ export const testNetworkConnection = async (url: string): Promise<boolean> => {
 export const getBestApiUrl = async (): Promise<string> => {
   const urls = [
     NETWORK_CONFIG.development.baseUrl,
+    NETWORK_CONFIG.development2.baseUrl,
     NETWORK_CONFIG.androidEmulator.baseUrl,
     NETWORK_CONFIG.local.baseUrl,
   ];

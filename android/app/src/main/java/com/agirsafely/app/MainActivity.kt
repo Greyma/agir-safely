@@ -1,4 +1,4 @@
-package com.agirsafely
+package com.agirsafely.app
 
 import android.os.Build
 import android.os.Bundle

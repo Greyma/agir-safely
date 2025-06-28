@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { MaterialIcons } from '@expo/vector-icons'
 import { apiService } from "../services/api"
 
 export default function AddAccidentScreen({ navigation }: any) {
@@ -171,7 +171,7 @@ export default function AddAccidentScreen({ navigation }: any) {
         <View style={styles.section}>
           <Text style={styles.label}>Photo (optionnel)</Text>
           <TouchableOpacity style={styles.photoButton} onPress={addPhoto}>
-            <Icon name="camera-alt" size={24} color="#64748b" />
+            <MaterialIcons name="camera-alt" size={24} color="#64748b" />
             <Text style={styles.photoButtonText}>Ajouter une photo</Text>
           </TouchableOpacity>
         </View>

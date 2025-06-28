@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { MaterialIcons } from '@expo/vector-icons'
 import { apiService } from "../services/api"
 
 interface Accident {
@@ -102,7 +102,7 @@ export default function AccidentologyScreen({ navigation }: any) {
       <View style={styles.accidentFooter}>
         <Text style={styles.reportedBy}>Signalé par: {item.reportedBy?.name || 'Utilisateur'}</Text>
         <TouchableOpacity style={styles.mapButton} onPress={showLocationMap}>
-          <Icon name="location-on" size={16} color="#2563eb" />
+          <MaterialIcons name="location-on" size={16} color="#2563eb" />
           <Text style={styles.mapButtonText}>Voir sur la carte</Text>
         </TouchableOpacity>
       </View>
@@ -125,7 +125,7 @@ export default function AccidentologyScreen({ navigation }: any) {
       <View style={styles.header}>
         <Text style={styles.title}>Accidentologies</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate("AddAccident")}>
-          <Icon name="add" size={24} color="white" />
+          <MaterialIcons name="add" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
@@ -159,7 +159,7 @@ export default function AccidentologyScreen({ navigation }: any) {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Icon name="warning" size={48} color="#64748b" />
+            <MaterialIcons name="warning" size={48} color="#64748b" />
             <Text style={styles.emptyText}>Aucun accident enregistré</Text>
             <Text style={styles.emptySubtext}>Les accidents apparaîtront ici une fois signalés</Text>
           </View>

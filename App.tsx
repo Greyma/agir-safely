@@ -20,7 +20,6 @@ import ProductDetailScreen from "./src/screens/ProductDetailScreen"
 import AppointmentScreen from "./src/screens/AppointmentScreen"
 import EquipmentDetailScreen from "./src/screens/EquipmentDetailScreen"
 import PPEDetailScreen from "./src/screens/PPEDetailScreen"
-import DebugScreen from "./src/screens/DebugScreen"
 
 const Tab = createBottomTabNavigator()
 const Stack = createStackNavigator()
@@ -189,28 +188,6 @@ function PPEStack() {
   )
 }
 
-function DebugStack() {
-  const { logout } = useAuth();
-  
-  return (
-    <Stack.Navigator>
-      <Stack.Screen 
-        name="DebugMain" 
-        component={DebugScreen} 
-        options={{ 
-          title: "Debug",
-          headerRight: () => (
-            <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-              <MaterialIcons name="logout" size={24} color="#2563eb" />
-              <Text style={styles.logoutText}>Logout</Text>
-            </TouchableOpacity>
-          ),
-        }} 
-      />
-    </Stack.Navigator>
-  )
-}
-
 function MainApp() {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -240,8 +217,6 @@ function MainApp() {
                 iconName = "build"
               } else if (route.name === "EPI") {
                 iconName = "security"
-              } else if (route.name === "Debug") {
-                iconName = "bug-report"
               }
 
               return <MaterialIcons name={iconName as any || "help"} size={size} color={color} />
@@ -256,7 +231,6 @@ function MainApp() {
           <Tab.Screen name="Maladies" component={DiseasesStack} />
           <Tab.Screen name="Maintenance" component={MaintenanceStack} />
           <Tab.Screen name="EPI" component={PPEStack} />
-          <Tab.Screen name="Debug" component={DebugStack} />
         </Tab.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

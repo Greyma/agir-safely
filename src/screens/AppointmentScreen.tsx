@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { MaterialIcons } from '@expo/vector-icons'
 
 export default function AppointmentScreen({ navigation }: any) {
   const [nom, setNom] = useState("")
@@ -51,7 +51,7 @@ export default function AppointmentScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
         <View style={styles.infoCard}>
-          <Icon name="info" size={24} color="#2563eb" />
+          <MaterialIcons name="info" size={24} color="#2563eb" />
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>Dr. Marie Dubois</Text>
             <Text style={styles.infoText}>Médecin du travail</Text>
@@ -108,20 +108,20 @@ export default function AppointmentScreen({ navigation }: any) {
 
           <View style={styles.urgencySection}>
             <View style={styles.urgencyHeader}>
-              <Icon name="priority-high" size={20} color="#ef4444" />
+              <MaterialIcons name="priority-high" size={20} color="#ef4444" />
               <Text style={styles.urgencyTitle}>Cas urgent ?</Text>
             </View>
             <Text style={styles.urgencyText}>
               En cas d'urgence médicale, contactez directement le 15 ou rendez-vous aux urgences.
             </Text>
             <TouchableOpacity style={styles.emergencyButton}>
-              <Icon name="phone" size={16} color="#ef4444" />
+              <MaterialIcons name="phone" size={16} color="#ef4444" />
               <Text style={styles.emergencyButtonText}>Appeler le 15</Text>
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Icon name="event" size={20} color="white" />
+            <MaterialIcons name="event" size={20} color="white" />
             <Text style={styles.submitButtonText}>Demander le rendez-vous</Text>
           </TouchableOpacity>
         </View>

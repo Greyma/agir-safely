@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { MaterialIcons } from '@expo/vector-icons'
 
 interface UsageRecord {
   id: string
@@ -133,7 +133,7 @@ export default function PPEDetailScreen({ route }: any) {
           </View>
           {ppe.disponible === 0 && (
             <View style={styles.stockAlert}>
-              <Icon name="warning" size={16} color="#ef4444" />
+              <MaterialIcons name="warning" size={16} color="#ef4444" />
               <Text style={styles.stockAlertText}>Stock épuisé - Commande nécessaire</Text>
             </View>
           )}
@@ -163,14 +163,14 @@ export default function PPEDetailScreen({ route }: any) {
           <Text style={styles.cardTitle}>Actions</Text>
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.actionButton} onPress={recordUsage}>
-              <Icon name="add-circle" size={20} color="#2563eb" />
+              <MaterialIcons name="add-circle" size={20} color="#2563eb" />
               <Text style={styles.actionButtonText}>Enregistrer utilisation</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, styles.damageActionButton]}
               onPress={() => setShowDamageForm(!showDamageForm)}
             >
-              <Icon name="report-problem" size={20} color="#ef4444" />
+              <MaterialIcons name="report-problem" size={20} color="#ef4444" />
               <Text style={[styles.actionButtonText, styles.damageActionText]}>Signaler dommage</Text>
             </TouchableOpacity>
           </View>
@@ -188,7 +188,7 @@ export default function PPEDetailScreen({ route }: any) {
               numberOfLines={4}
             />
             <TouchableOpacity style={styles.photoButton} onPress={addPhoto}>
-              <Icon name="camera-alt" size={20} color="#64748b" />
+              <MaterialIcons name="camera-alt" size={20} color="#64748b" />
               <Text style={styles.photoButtonText}>Ajouter une photo</Text>
             </TouchableOpacity>
             <View style={styles.formButtons}>
@@ -224,7 +224,7 @@ export default function PPEDetailScreen({ route }: any) {
           <Text style={styles.cardTitle}>Informations Catalogue</Text>
           <View style={styles.catalogInfo}>
             <View style={styles.catalogImagePlaceholder}>
-              <Icon name="image" size={40} color="#64748b" />
+              <MaterialIcons name="image" size={40} color="#64748b" />
             </View>
             <View style={styles.catalogDetails}>
               <Text style={styles.catalogName}>{ppe.nom}</Text>

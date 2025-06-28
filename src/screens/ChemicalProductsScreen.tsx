@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { MaterialIcons } from '@expo/vector-icons'
 
 interface ChemicalProduct {
   id: string
@@ -113,7 +113,7 @@ export default function ChemicalProductsScreen({ navigation }: any) {
 
       <View style={styles.searchContainer}>
         <View style={styles.searchBox}>
-          <Icon name="search" size={20} color="#64748b" />
+          <MaterialIcons name="search" size={20} color="#64748b" />
           <TextInput
             style={styles.searchInput}
             value={searchText}

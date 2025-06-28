@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { MaterialIcons } from '@expo/vector-icons'
 
 interface Disease {
   id: string
@@ -89,32 +89,32 @@ export default function OccupationalDiseasesScreen({ navigation }: any) {
       <View style={styles.header}>
         <Text style={styles.title}>Maladies Professionnelles</Text>
         <TouchableOpacity style={styles.appointmentButton} onPress={() => navigation.navigate("Appointment")}>
-          <Icon name="event" size={20} color="white" />
+          <MaterialIcons name="event" size={20} color="white" />
           <Text style={styles.appointmentButtonText}>RDV</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.alertSection}>
         <View style={styles.alertCard}>
-          <Icon name="info" size={24} color="#2563eb" />
+          <MaterialIcons name="info" size={24} color="#2563eb" />
           <View style={styles.alertContent}>
             <Text style={styles.alertTitle}>Prochaine visite médicale</Text>
             <Text style={styles.alertText}>Pensez à programmer votre visite annuelle</Text>
           </View>
           <TouchableOpacity onPress={() => scheduleNotification("Rappel: Visite médicale dans 7 jours")}>
-            <Icon name="notifications" size={20} color="#2563eb" />
+            <MaterialIcons name="notifications" size={20} color="#2563eb" />
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <Icon name="local-hospital" size={24} color="#ef4444" />
+          <MaterialIcons name="local-hospital" size={24} color="#ef4444" />
           <Text style={styles.statNumber}>{diseases.length}</Text>
           <Text style={styles.statLabel}>Maladies répertoriées</Text>
         </View>
         <View style={styles.statCard}>
-          <Icon name="shield" size={24} color="#10b981" />
+          <MaterialIcons name="shield" size={24} color="#10b981" />
           <Text style={styles.statNumber}>12</Text>
           <Text style={styles.statLabel}>Mesures préventives</Text>
         </View>
