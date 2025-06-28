@@ -26,6 +26,8 @@ app.use(cors({
     'http://192.168.1.5:8082',
     'exp://192.168.1.5:8081',
     'exp://192.168.1.5:8082',
+    // Production Render domain
+    'https://agir-safely-backend.onrender.com',
     // Allow all origins for development (remove in production)
     '*'
   ],

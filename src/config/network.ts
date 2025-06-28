@@ -1,5 +1,10 @@
 // Network configuration for different environments
 export const NETWORK_CONFIG = {
+  // Production URL (Render deployment)
+  production: {
+    baseUrl: 'https://agir-safely-backend.onrender.com',
+    timeout: 10000,
+  },
   // Development URLs - modify these based on your setup
   development: {
     baseUrl: 'http://192.168.1.5:5000',
@@ -24,9 +29,11 @@ export const NETWORK_CONFIG = {
 
 // Get the appropriate configuration based on environment
 export const getNetworkConfig = () => {
-  // You can modify this logic based on your needs
-  // For now, return development config
-  return NETWORK_CONFIG.development;
+  // Use production URL for release builds, development for debug builds
+  if (__DEV__) {
+    return NETWORK_CONFIG.development;
+  }
+  return NETWORK_CONFIG.production;
 };
 
 // Helper function to test network connectivity
@@ -51,6 +58,7 @@ export const testNetworkConnection = async (url: string): Promise<boolean> => {
 // Get the best available API URL
 export const getBestApiUrl = async (): Promise<string> => {
   const urls = [
+    NETWORK_CONFIG.production.baseUrl,
     NETWORK_CONFIG.development.baseUrl,
     NETWORK_CONFIG.development2.baseUrl,
     NETWORK_CONFIG.androidEmulator.baseUrl,
@@ -65,7 +73,7 @@ export const getBestApiUrl = async (): Promise<string> => {
     }
   }
 
-  // Return default if none work
-  console.warn('No working API URL found, using default');
-  return NETWORK_CONFIG.development.baseUrl;
+  // Return production URL if none work
+  console.warn('No working API URL found, using production');
+  return NETWORK_CONFIG.production.baseUrl;
 }; 
