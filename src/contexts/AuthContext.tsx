@@ -12,7 +12,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean, error?: string }>;
   register: (email: string, password: string, name: string) => Promise<{ success: boolean, error?: string }>;
   logout: () => Promise<void>;
   resetAuth: () => Promise<void>;
@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean, error?: string }> => {
     try {
       setIsLoading(true);
       
@@ -81,10 +81,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setToken(newToken);
       setUser(userData);
-      return true;
-    } catch (error) {
-      console.error('Login error:', error);
-      return false;
+      return { success: true };
+    } catch (error: any) {
+      // Simple French error message for wrong credentials
+      return { success: false, error: 'Combinaison email et mot de passe incorrecte' };
     } finally {
       setIsLoading(false);
     }
@@ -101,12 +101,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userData);
       return { success: true };
     } catch (error: any) {
-      console.error('Registration error:', error);
-      // Try to extract error message from backend response
-      let errorMsg = 'Registration failed';
-      if (error && error.message) errorMsg = error.message;
-      if (error && error.errors && Array.isArray(error.errors)) errorMsg += '\n' + error.errors.join('\n');
-      return { success: false, error: errorMsg };
+      // Simple French error message for registration issues
+      return { success: false, error: 'Erreur lors de l\'inscription. Veuillez réessayer.' };
     } finally {
       setIsLoading(false);
     }

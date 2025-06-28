@@ -46,7 +46,7 @@ class ApiService {
 
       return await response.json();
     } catch (error) {
-      console.error('API Request failed:', error);
+      // Remove console.error to prevent logging in console
       if (error instanceof TypeError && error.message && error.message.includes('fetch')) {
         throw { message: 'Network connection failed. Please check your internet connection.' };
       }
