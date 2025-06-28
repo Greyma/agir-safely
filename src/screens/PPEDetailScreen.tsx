@@ -205,10 +205,10 @@ export default function PPEDetailScreen({ route }: any) {
         <View style={styles.usageHistoryCard}>
           <View style={styles.historyHeader}>
             <Text style={styles.cardTitle}>Historique d'Utilisation</Text>
-            <Text style={styles.historyCount}>{usageRecords.length} utilisations</Text>
+            <Text style={styles.historyCount}>{(usageRecords || []).length} utilisations</Text>
           </View>
 
-          {usageRecords.map((record) => (
+          {(usageRecords || []).map((record) => (
             <View key={record.id} style={styles.usageRecord}>
               <View style={styles.usageHeader}>
                 <Text style={styles.usageDate}>{record.date}</Text>

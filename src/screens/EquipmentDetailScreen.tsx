@@ -1,9 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native"
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Platform } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MaterialIcons } from '@expo/vector-icons'
+import * as FileSystem from 'expo-file-system'
+import * as Sharing from 'expo-sharing'
 
 interface Intervention {
   id: string
@@ -17,40 +19,102 @@ interface Intervention {
 const mockInterventions: Intervention[] = [
   {
     id: "1",
-    date: "2024-01-10",
+    date: "15/06/2024",
     technicien: "Jean Dupont",
     type: "Maintenance préventive",
-    description: "Vérification générale, graissage, contrôle des niveaux",
+    description: "Vérification générale et nettoyage des composants",
     duree: "2h30",
   },
   {
     id: "2",
-    date: "2023-12-15",
+    date: "10/05/2024",
     technicien: "Marie Martin",
     type: "Réparation",
-    description: "Remplacement du joint d'étanchéité principal",
-    duree: "1h45",
-  },
-  {
-    id: "3",
-    date: "2023-11-20",
-    technicien: "Pierre Durand",
-    type: "Maintenance préventive",
-    description: "Contrôle trimestriel, nettoyage des filtres",
+    description: "Remplacement du capteur de température défaillant",
     duree: "1h15",
   },
 ]
 
 export default function EquipmentDetailScreen({ route }: any) {
   const { equipment } = route.params
-  const [interventions] = useState<Intervention[]>(mockInterventions)
+  const [interventions, setInterventions] = useState<Intervention[]>(mockInterventions)
+  const [showInterventionModal, setShowInterventionModal] = useState(false)
+  const [newIntervention, setNewIntervention] = useState({
+    technicien: "",
+    type: "",
+    description: "",
+    duree: "",
+  })
 
   const addIntervention = () => {
-    Alert.alert("Nouvelle intervention", "Fonctionnalité d'ajout d'intervention en développement")
+    setShowInterventionModal(true)
   }
 
-  const generateReport = () => {
-    Alert.alert("Rapport généré", "Le rapport de maintenance a été généré et envoyé par email")
+  const saveIntervention = () => {
+    if (!newIntervention.technicien || !newIntervention.type || !newIntervention.description || !newIntervention.duree) {
+      Alert.alert("Erreur", "Veuillez remplir tous les champs")
+      return
+    }
+
+    const intervention: Intervention = {
+      id: Date.now().toString(),
+      date: new Date().toLocaleDateString('fr-FR'),
+      technicien: newIntervention.technicien,
+      type: newIntervention.type,
+      description: newIntervention.description,
+      duree: newIntervention.duree,
+    }
+
+    setInterventions([intervention, ...interventions])
+    setNewIntervention({ technicien: "", type: "", description: "", duree: "" })
+    setShowInterventionModal(false)
+    
+    Alert.alert("Succès", "Nouvelle intervention ajoutée avec succès")
+  }
+
+  const generateReport = async () => {
+    const report = `
+RAPPORT DE MAINTENANCE - ${equipment.nom}
+
+Équipement: ${equipment.nom}
+Type: ${equipment.type}
+Zone: ${equipment.zone}
+État actuel: ${equipment.etat}
+
+Dernière maintenance: ${equipment.derniereMaintenance}
+Prochaine maintenance: ${equipment.prochaineMaintenance}
+
+INTERVENTIONS RÉCENTES:
+${interventions.map(int => `
+- ${int.date} | ${int.type}
+  Technicien: ${int.technicien}
+  Description: ${int.description}
+  Durée: ${int.duree}
+`).join('')}
+
+Total interventions: ${interventions.length}
+    `.trim()
+
+    try {
+      const fileName = `rapport_maintenance_${equipment.nom?.replace(/\s+/g, '_') || 'equipement'}.txt`;
+      const fileUri = FileSystem.documentDirectory + fileName;
+      
+      // Save the file temporarily
+      await FileSystem.writeAsStringAsync(fileUri, report, { encoding: FileSystem.EncodingType.UTF8 });
+
+      // Immediately share the file
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'text/plain',
+          dialogTitle: 'Partager le rapport de maintenance'
+        });
+      } else {
+        Alert.alert('Partage non disponible', 'Impossible de partager ce fichier sur cet appareil.');
+      }
+    } catch (e) {
+      console.error('Error generating report:', e);
+      Alert.alert("Erreur", "Impossible de générer le rapport.")
+    }
   }
 
   const getStatusColor = (etat: string) => {
@@ -131,10 +195,10 @@ export default function EquipmentDetailScreen({ route }: any) {
         <View style={styles.historyCard}>
           <View style={styles.historyHeader}>
             <Text style={styles.cardTitle}>Historique des Interventions</Text>
-            <Text style={styles.historyCount}>{interventions.length} interventions</Text>
+            <Text style={styles.historyCount}>{(interventions || []).length} interventions</Text>
           </View>
 
-          {interventions.map((intervention) => (
+          {(interventions || []).map((intervention) => (
             <View key={intervention.id} style={styles.interventionItem}>
               <View style={styles.interventionHeader}>
                 <Text style={styles.interventionDate}>{intervention.date}</Text>
@@ -174,6 +238,82 @@ export default function EquipmentDetailScreen({ route }: any) {
           </View>
         </View>
       </ScrollView>
+
+      {/* Modal pour nouvelle intervention */}
+      <Modal
+        visible={showInterventionModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowInterventionModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Nouvelle Intervention</Text>
+              <TouchableOpacity onPress={() => setShowInterventionModal(false)}>
+                <MaterialIcons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Technicien *</Text>
+              <TextInput
+                style={styles.formInput}
+                value={newIntervention.technicien}
+                onChangeText={(text) => setNewIntervention({...newIntervention, technicien: text})}
+                placeholder="Nom du technicien"
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Type d'intervention *</Text>
+              <TextInput
+                style={styles.formInput}
+                value={newIntervention.type}
+                onChangeText={(text) => setNewIntervention({...newIntervention, type: text})}
+                placeholder="Ex: Maintenance préventive, Réparation, Inspection"
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Description *</Text>
+              <TextInput
+                style={styles.formTextArea}
+                value={newIntervention.description}
+                onChangeText={(text) => setNewIntervention({...newIntervention, description: text})}
+                placeholder="Décrivez l'intervention effectuée..."
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Durée *</Text>
+              <TextInput
+                style={styles.formInput}
+                value={newIntervention.duree}
+                onChangeText={(text) => setNewIntervention({...newIntervention, duree: text})}
+                placeholder="Ex: 2h30, 45min"
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={styles.cancelButton} 
+                onPress={() => setShowInterventionModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.saveButton} 
+                onPress={saveIntervention}
+              >
+                <Text style={styles.saveButtonText}>Enregistrer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -409,6 +549,75 @@ const styles = StyleSheet.create({
   specValue: {
     fontSize: 14,
     color: "#1e293b",
+    fontWeight: "500",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 12,
+    width: "80%",
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1e293b",
+  },
+  formSection: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 8,
+  },
+  formInput: {
+    backgroundColor: "#f1f5f9",
+    padding: 12,
+    borderRadius: 8,
+  },
+  formTextArea: {
+    backgroundColor: "#f1f5f9",
+    padding: 12,
+    borderRadius: 8,
+    height: 100,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cancelButton: {
+    backgroundColor: "#f1f5f9",
+    padding: 12,
+    borderRadius: 8,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    color: "#2563eb",
+    fontWeight: "500",
+  },
+  saveButton: {
+    backgroundColor: "#2563eb",
+    padding: 12,
+    borderRadius: 8,
+  },
+  saveButtonText: {
+    fontSize: 14,
+    color: "white",
     fontWeight: "500",
   },
 })

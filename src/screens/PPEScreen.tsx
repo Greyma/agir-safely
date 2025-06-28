@@ -1,166 +1,238 @@
 "use client"
 
-import { useState } from "react"
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from "react-native"
+import { useState, useEffect } from "react"
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MaterialIcons } from '@expo/vector-icons'
+import { apiService } from "../services/api"
 
 interface PPE {
-  id: string
-  nom: string
-  type: string
-  norme: string
-  zone: string
-  disponible: number
-  total: number
-  etat: "Bon" | "Usé" | "À remplacer"
-  derniereUtilisation: string
+  _id: string
+  name: string
+  category: string
+  description: string
+  manufacturer: string
+  model: string
+  serialNumber: string
+  condition: string
+  status: string
+  location: string
+  quantity: number
+  unit: string
+  assignedTo: {
+    name: string
+    email: string
+  }
+  lastInspection: string
+  nextInspection: string
 }
-
-const mockPPE: PPE[] = [
-  {
-    id: "1",
-    nom: "Casque de sécurité",
-    type: "Protection tête",
-    norme: "EN 397",
-    zone: "Atelier A",
-    disponible: 8,
-    total: 10,
-    etat: "Bon",
-    derniereUtilisation: "2024-01-20",
-  },
-  {
-    id: "2",
-    nom: "Gants anti-coupure",
-    type: "Protection mains",
-    norme: "EN 388",
-    zone: "Zone de découpe",
-    disponible: 3,
-    total: 12,
-    etat: "Usé",
-    derniereUtilisation: "2024-01-21",
-  },
-  {
-    id: "3",
-    nom: "Chaussures de sécurité",
-    type: "Protection pieds",
-    norme: "EN ISO 20345",
-    zone: "Production",
-    disponible: 0,
-    total: 15,
-    etat: "À remplacer",
-    derniereUtilisation: "2024-01-19",
-  },
-  {
-    id: "4",
-    nom: "Lunettes de protection",
-    type: "Protection yeux",
-    norme: "EN 166",
-    zone: "Laboratoire",
-    disponible: 6,
-    total: 8,
-    etat: "Bon",
-    derniereUtilisation: "2024-01-21",
-  },
-]
 
 const zones = ["Toutes", "Atelier A", "Zone de découpe", "Production", "Laboratoire"]
 
 export default function PPEScreen({ navigation }: any) {
-  const [ppeList, setPpeList] = useState<PPE[]>(mockPPE)
+  const [ppeList, setPpeList] = useState<PPE[]>([])
   const [selectedZone, setSelectedZone] = useState("Toutes")
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
-  const filteredPPE = ppeList.filter((ppe) => selectedZone === "Toutes" || ppe.zone === selectedZone)
-
-  const getAvailabilityColor = (disponible: number, total: number) => {
-    const ratio = disponible / total
-    if (ratio === 0) return "#ef4444"
-    if (ratio < 0.3) return "#f59e0b"
-    return "#10b981"
+  const fetchPPE = async () => {
+    try {
+      setLoading(true)
+      const data = await apiService.getPPE()
+      // Ensure data is always an array
+      setPpeList(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Error fetching PPE:', error)
+      Alert.alert('Erreur', 'Impossible de charger les EPI')
+      setPpeList([]) // Set empty array on error
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const getStateColor = (etat: string) => {
-    switch (etat) {
-      case "Bon":
+  const onRefresh = async () => {
+    setRefreshing(true)
+    await fetchPPE()
+    setRefreshing(false)
+  }
+
+  useEffect(() => {
+    fetchPPE()
+  }, [])
+
+  const filteredPPE = ppeList.filter((ppe) => selectedZone === "Toutes" || ppe.location === selectedZone)
+
+  const getAvailabilityColor = (status: string) => {
+    switch (status) {
+      case "available":
         return "#10b981"
-      case "Usé":
+      case "assigned":
         return "#f59e0b"
-      case "À remplacer":
+      case "maintenance":
+        return "#ef4444"
+      case "retired":
+      case "lost":
+        return "#6b7280"
+      default:
+        return "#6b7280"
+    }
+  }
+
+  const getStateColor = (condition: string) => {
+    switch (condition) {
+      case "excellent":
+      case "good":
+        return "#10b981"
+      case "fair":
+        return "#f59e0b"
+      case "poor":
+      case "damaged":
         return "#ef4444"
       default:
         return "#6b7280"
     }
   }
 
-  const reportDamage = (ppeId: string, ppeName: string) => {
+  const getStateText = (condition: string) => {
+    switch (condition) {
+      case "excellent":
+        return "Excellent"
+      case "good":
+        return "Bon"
+      case "fair":
+        return "Usé"
+      case "poor":
+        return "Mauvais"
+      case "damaged":
+        return "À remplacer"
+      default:
+        return condition
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "available":
+        return "Disponible"
+      case "assigned":
+        return "Assigné"
+      case "maintenance":
+        return "Maintenance"
+      case "retired":
+        return "Retiré"
+      case "lost":
+        return "Perdu"
+      default:
+        return status
+    }
+  }
+
+  const reportDamage = async (ppeId: string, ppeName: string) => {
     Alert.alert("Signaler un dommage", `Voulez-vous signaler un dommage sur ${ppeName} ?`, [
       { text: "Annuler", style: "cancel" },
       {
         text: "Signaler",
-        onPress: () => {
-          Alert.alert(
-            "Dommage signalé",
-            "Le signalement a été envoyé aux responsables. Une notification leur a été envoyée.",
-          )
-          // Ici on pourrait ajouter la logique pour envoyer une notification
+        onPress: async () => {
+          try {
+            await apiService.reportPPEDamage(ppeId, {
+              description: "Dommage signalé par l'utilisateur",
+              severity: "moderate"
+            })
+            
+            Alert.alert(
+              "Dommage signalé",
+              "Le signalement a été envoyé aux responsables. Une notification leur a été envoyée."
+            )
+            
+            // Refresh the PPE list
+            await fetchPPE()
+          } catch (error) {
+            console.error('Error reporting damage:', error)
+            Alert.alert('Erreur', 'Impossible de signaler le dommage')
+          }
         },
       },
     ])
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('fr-FR')
+    } catch (error) {
+      return 'Date invalide'
+    }
   }
 
   const renderPPE = ({ item }: { item: PPE }) => (
     <TouchableOpacity style={styles.ppeCard} onPress={() => navigation.navigate("PPEDetail", { ppe: item })}>
       <View style={styles.ppeHeader}>
         <View style={styles.ppeInfo}>
-          <Text style={styles.ppeName}>{item.nom}</Text>
-          <Text style={styles.ppeType}>{item.type}</Text>
-          <Text style={styles.ppeNorme}>Norme: {item.norme}</Text>
+          <Text style={styles.ppeName}>{item.name}</Text>
+          <Text style={styles.ppeType}>{item.category}</Text>
+          <Text style={styles.ppeNorme}>Modèle: {item.model}</Text>
         </View>
         <View style={styles.ppeStatus}>
-          <View style={[styles.stateBadge, { backgroundColor: getStateColor(item.etat) }]}>
-            <Text style={styles.stateText}>{item.etat}</Text>
+          <View style={[styles.stateBadge, { backgroundColor: getStateColor(item.condition) }]}>
+            <Text style={styles.stateText}>{getStateText(item.condition)}</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.zoneContainer}>
         <MaterialIcons name="location-on" size={16} color="#64748b" />
-        <Text style={styles.zoneText}>{item.zone}</Text>
+        <Text style={styles.zoneText}>{item.location}</Text>
       </View>
 
       <View style={styles.availabilityContainer}>
         <View style={styles.availabilityInfo}>
-          <Text style={styles.availabilityLabel}>Disponibilité:</Text>
-          <Text style={[styles.availabilityText, { color: getAvailabilityColor(item.disponible, item.total) }]}>
-            {item.disponible}/{item.total}
+          <Text style={styles.availabilityLabel}>Statut:</Text>
+          <Text style={[styles.availabilityText, { color: getAvailabilityColor(item.status) }]}>
+            {getStatusText(item.status)}
           </Text>
         </View>
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width: `${(item.disponible / item.total) * 100}%`,
-                backgroundColor: getAvailabilityColor(item.disponible, item.total),
-              },
-            ]}
-          />
+        <View style={styles.quantityInfo}>
+          <Text style={styles.quantityLabel}>Quantité:</Text>
+          <Text style={styles.quantityText}>{item.quantity} {item.unit}</Text>
         </View>
       </View>
 
       <View style={styles.lastUsageContainer}>
-        <Text style={styles.lastUsageLabel}>Dernière utilisation:</Text>
-        <Text style={styles.lastUsageDate}>{item.derniereUtilisation}</Text>
+        <Text style={styles.lastUsageLabel}>Dernière inspection:</Text>
+        <Text style={styles.lastUsageDate}>{formatDate(item.lastInspection)}</Text>
       </View>
 
+      <View style={styles.nextInspectionContainer}>
+        <Text style={styles.nextInspectionLabel}>Prochaine inspection:</Text>
+        <Text style={styles.nextInspectionDate}>{formatDate(item.nextInspection)}</Text>
+      </View>
+
+      {item.assignedTo && (
+        <View style={styles.assignedContainer}>
+          <Text style={styles.assignedLabel}>Assigné à:</Text>
+          <Text style={styles.assignedName}>{item.assignedTo.name}</Text>
+        </View>
+      )}
+
       <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.damageButton} onPress={() => reportDamage(item.id, item.nom)}>
+        <TouchableOpacity style={styles.damageButton} onPress={() => reportDamage(item._id, item.name)}>
           <MaterialIcons name="report-problem" size={16} color="#ef4444" />
           <Text style={styles.damageButtonText}>Signaler dommage</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
   )
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2563eb" />
+          <Text style={styles.loadingText}>Chargement des EPI...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -172,7 +244,7 @@ export default function PPEScreen({ navigation }: any) {
         <View style={styles.alertCard}>
           <MaterialIcons name="warning" size={20} color="#f59e0b" />
           <Text style={styles.alertText}>
-            {ppeList.filter((ppe) => ppe.disponible === 0).length} EPI en rupture de stock
+            {ppeList.filter((ppe) => ppe.status === "maintenance").length} EPI en maintenance
           </Text>
         </View>
       </View>
@@ -185,13 +257,13 @@ export default function PPEScreen({ navigation }: any) {
         </View>
         <View style={styles.statCard}>
           <MaterialIcons name="check-circle" size={24} color="#10b981" />
-          <Text style={styles.statNumber}>{ppeList.filter((ppe) => ppe.etat === "Bon").length}</Text>
+          <Text style={styles.statNumber}>{ppeList.filter((ppe) => ppe.condition === "excellent" || ppe.condition === "good").length}</Text>
           <Text style={styles.statLabel}>En bon état</Text>
         </View>
         <View style={styles.statCard}>
           <MaterialIcons name="error" size={24} color="#ef4444" />
-          <Text style={styles.statNumber}>{ppeList.filter((ppe) => ppe.disponible === 0).length}</Text>
-          <Text style={styles.statLabel}>En rupture</Text>
+          <Text style={styles.statNumber}>{ppeList.filter((ppe) => ppe.status === "maintenance").length}</Text>
+          <Text style={styles.statLabel}>En maintenance</Text>
         </View>
       </View>
 
@@ -202,10 +274,10 @@ export default function PPEScreen({ navigation }: any) {
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={[styles.filterButton, selectedZone === item && styles.filterButtonActive]}
+              style={[styles.zoneButton, selectedZone === item && styles.zoneButtonActive]}
               onPress={() => setSelectedZone(item)}
             >
-              <Text style={[styles.filterButtonText, selectedZone === item && styles.filterButtonTextActive]}>
+              <Text style={[styles.zoneButtonText, selectedZone === item && styles.zoneButtonTextActive]}>
                 {item}
               </Text>
             </TouchableOpacity>
@@ -217,9 +289,19 @@ export default function PPEScreen({ navigation }: any) {
       <FlatList
         data={filteredPPE}
         renderItem={renderPPE}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         style={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="security" size={48} color="#64748b" />
+            <Text style={styles.emptyText}>Aucun EPI trouvé</Text>
+            <Text style={styles.emptySubtext}>Les équipements apparaîtront ici une fois ajoutés</Text>
+          </View>
+        }
       />
     </SafeAreaView>
   )
@@ -295,22 +377,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e2e8f0",
   },
-  filterButton: {
+  zoneButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginHorizontal: 4,
     borderRadius: 20,
     backgroundColor: "#f1f5f9",
   },
-  filterButtonActive: {
+  zoneButtonActive: {
     backgroundColor: "#2563eb",
   },
-  filterButtonText: {
+  zoneButtonText: {
     fontSize: 14,
     fontWeight: "500",
     color: "#64748b",
   },
-  filterButtonTextActive: {
+  zoneButtonTextActive: {
     color: "white",
   },
   list: {
@@ -393,15 +475,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  progressBar: {
-    height: 6,
-    backgroundColor: "#f1f5f9",
-    borderRadius: 3,
-    overflow: "hidden",
+  quantityInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
   },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
+  quantityLabel: {
+    fontSize: 14,
+    color: "#64748b",
+  },
+  quantityText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   lastUsageContainer: {
     flexDirection: "row",
@@ -413,6 +499,35 @@ const styles = StyleSheet.create({
     color: "#64748b",
   },
   lastUsageDate: {
+    fontSize: 14,
+    color: "#1e293b",
+    fontWeight: "500",
+  },
+  nextInspectionContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  nextInspectionLabel: {
+    fontSize: 14,
+    color: "#64748b",
+  },
+  nextInspectionDate: {
+    fontSize: 14,
+    color: "#1e293b",
+    fontWeight: "500",
+  },
+  assignedContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  assignedLabel: {
+    fontSize: 14,
+    color: "#64748b",
+    marginRight: 4,
+  },
+  assignedName: {
     fontSize: 14,
     color: "#1e293b",
     fontWeight: "500",
@@ -434,5 +549,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#ef4444",
     fontWeight: "500",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#64748b",
+    marginTop: 16,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#64748b",
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#64748b",
+    marginTop: 8,
   },
 })

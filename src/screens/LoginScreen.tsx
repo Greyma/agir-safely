@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
+import { clearStoredAuth } from '../utils/clearAuth';
 
 const BRAND_COLOR = '#2563eb';
 const MIN_PASSWORD_LENGTH = 6;
@@ -26,7 +27,7 @@ const LoginScreen: React.FC = () => {
   const [cardAnim] = useState(new Animated.Value(0));
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  const { login, register, isLoading } = useAuth();
+  const { login, register, isLoading, resetAuth } = useAuth();
 
   React.useEffect(() => {
     Animated.spring(cardAnim, {
@@ -72,6 +73,16 @@ const LoginScreen: React.FC = () => {
       }
     } catch (error) {
       Alert.alert('Error', 'An unexpected error occurred');
+    }
+  };
+
+  const handleClearAuth = async () => {
+    try {
+      await clearStoredAuth();
+      await resetAuth();
+      Alert.alert('Success', 'Authentication data cleared. You can now log in with the test credentials:\n\nEmail: test@example.com\nPassword: password123');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to clear authentication data');
     }
   };
 
@@ -147,6 +158,14 @@ const LoginScreen: React.FC = () => {
               ? "Don't have an account? Register"
               : 'Already have an account? Login'}
           </Text>
+        </TouchableOpacity>
+        
+        {/* Debug button to clear auth data */}
+        <TouchableOpacity
+          style={styles.debugButton}
+          onPress={handleClearAuth}
+        >
+          <Text style={styles.debugButtonText}>Clear Auth Data (Debug)</Text>
         </TouchableOpacity>
       </Animated.View>
     </KeyboardAvoidingView>
@@ -256,6 +275,25 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     backgroundColor: '#e5e7eb',
+  },
+  debugButton: {
+    backgroundColor: '#dc2626',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  debugButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
 });
 

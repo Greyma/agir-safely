@@ -1,101 +1,134 @@
 "use client"
 
-import { useState } from "react"
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from "react-native"
+import { useState, useEffect } from "react"
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MaterialIcons } from '@expo/vector-icons'
+import { apiService } from "../services/api"
 
 interface Equipment {
-  id: string
-  nom: string
+  _id: string
+  name: string
   type: string
-  etat: "Fonctionnel" | "En maintenance" | "En panne"
-  derniereMaintenance: string
-  prochaineMaintenance: string
-  zone: string
-  alerteActive: boolean
+  model: string
+  manufacturer: string
+  status: string
+  condition: string
+  location: string
+  lastMaintenance: string
+  nextMaintenance: string
+  assignedTo: {
+    name: string
+    email: string
+  }
+  alerts: Array<{
+    type: string
+    message: string
+    isActive: boolean
+  }>
 }
 
-const mockEquipments: Equipment[] = [
-  {
-    id: "1",
-    nom: "Compresseur A1",
-    type: "Compresseur d'air",
-    etat: "Fonctionnel",
-    derniereMaintenance: "2024-01-10",
-    prochaineMaintenance: "2024-04-10",
-    zone: "Atelier A",
-    alerteActive: false,
-  },
-  {
-    id: "2",
-    nom: "Pont roulant B2",
-    type: "Équipement de levage",
-    etat: "En maintenance",
-    derniereMaintenance: "2024-01-15",
-    prochaineMaintenance: "2024-01-25",
-    zone: "Entrepôt B",
-    alerteActive: true,
-  },
-  {
-    id: "3",
-    nom: "Presse hydraulique C1",
-    type: "Machine-outil",
-    etat: "En panne",
-    derniereMaintenance: "2023-12-20",
-    prochaineMaintenance: "2024-01-20",
-    zone: "Production C",
-    alerteActive: true,
-  },
-  {
-    id: "4",
-    nom: "Ventilation D1",
-    type: "Système de ventilation",
-    etat: "Fonctionnel",
-    derniereMaintenance: "2024-01-05",
-    prochaineMaintenance: "2024-02-05",
-    zone: "Zone D",
-    alerteActive: true,
-  },
-]
-
 export default function MaintenanceScreen({ navigation }: any) {
-  const [equipments, setEquipments] = useState<Equipment[]>(mockEquipments)
-  const [selectedFilter, setSelectedFilter] = useState<"Tous" | "Fonctionnel" | "En maintenance" | "En panne">("Tous")
+  const [equipments, setEquipments] = useState<Equipment[]>([])
+  const [selectedFilter, setSelectedFilter] = useState<"Tous" | "functional" | "maintenance" | "broken">("Tous")
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
-  const filteredEquipments = equipments.filter((eq) => selectedFilter === "Tous" || eq.etat === selectedFilter)
+  const fetchEquipment = async () => {
+    try {
+      setLoading(true)
+      const data = await apiService.getEquipment()
+      // Ensure data is always an array
+      setEquipments(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Error fetching equipment:', error)
+      Alert.alert('Erreur', 'Impossible de charger les équipements')
+      setEquipments([]) // Set empty array on error
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const alertsCount = equipments.filter((eq) => eq.alerteActive).length
+  const onRefresh = async () => {
+    setRefreshing(true)
+    await fetchEquipment()
+    setRefreshing(false)
+  }
 
-  const getStatusColor = (etat: string) => {
-    switch (etat) {
-      case "Fonctionnel":
+  useEffect(() => {
+    fetchEquipment()
+  }, [])
+
+  const filteredEquipments = equipments.filter((eq) => selectedFilter === "Tous" || eq.status === selectedFilter)
+
+  const alertsCount = equipments.filter((eq) => (eq.alerts || []).some(alert => alert.isActive)).length
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "functional":
         return "#10b981"
-      case "En maintenance":
+      case "maintenance":
         return "#f59e0b"
-      case "En panne":
+      case "broken":
         return "#ef4444"
+      case "retired":
+        return "#6b7280"
       default:
         return "#6b7280"
     }
   }
 
-  const getStatusIcon = (etat: string) => {
-    switch (etat) {
-      case "Fonctionnel":
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "functional":
         return "check-circle"
-      case "En maintenance":
+      case "maintenance":
         return "build"
-      case "En panne":
+      case "broken":
         return "error"
+      case "retired":
+        return "block"
       default:
         return "help"
     }
   }
 
-  const updateEquipmentStatus = (id: string, newStatus: Equipment["etat"]) => {
-    setEquipments((prev) => prev.map((eq) => (eq.id === id ? { ...eq, etat: newStatus } : eq)))
-    Alert.alert("Statut mis à jour", `L'équipement a été marqué comme "${newStatus}"`)
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "functional":
+        return "Fonctionnel"
+      case "maintenance":
+        return "En maintenance"
+      case "broken":
+        return "En panne"
+      case "retired":
+        return "Retiré"
+      default:
+        return status
+    }
+  }
+
+  const updateEquipmentStatus = async (id: string, newStatus: Equipment["status"]) => {
+    try {
+      await apiService.updateEquipmentStatus(id, newStatus)
+      
+      // Update local state
+      setEquipments((prev) => (prev || []).map((eq) => (eq._id === id ? { ...eq, status: newStatus } : eq)))
+      
+      Alert.alert("Statut mis à jour", `L'équipement a été marqué comme "${getStatusText(newStatus)}"`)
+    } catch (error) {
+      console.error('Error updating equipment status:', error)
+      Alert.alert('Erreur', 'Impossible de mettre à jour le statut')
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('fr-FR')
+    } catch (error) {
+      return 'Date invalide'
+    }
   }
 
   const renderEquipment = ({ item }: { item: Equipment }) => (
@@ -105,28 +138,47 @@ export default function MaintenanceScreen({ navigation }: any) {
     >
       <View style={styles.equipmentHeader}>
         <View style={styles.equipmentInfo}>
-          <Text style={styles.equipmentName}>{item.nom}</Text>
+          <Text style={styles.equipmentName}>{item.name}</Text>
           <Text style={styles.equipmentType}>{item.type}</Text>
-          <Text style={styles.equipmentZone}>{item.zone}</Text>
+          <Text style={styles.equipmentZone}>{item.location}</Text>
         </View>
         <View style={styles.statusContainer}>
-          {item.alerteActive && <MaterialIcons name="warning" size={16} color="#f59e0b" style={styles.alertIcon} />}
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.etat) }]}>
-            <MaterialIcons name={getStatusIcon(item.etat)} size={14} color="white" />
-            <Text style={styles.statusText}>{item.etat}</Text>
+          {(item.alerts || []).some(alert => alert.isActive) && (
+            <MaterialIcons name="warning" size={16} color="#f59e0b" style={styles.alertIcon} />
+          )}
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+            <MaterialIcons name={getStatusIcon(item.status)} size={14} color="white" />
+            <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
           </View>
         </View>
+      </View>
+
+      <View style={styles.equipmentDetails}>
+        <View style={styles.detailItem}>
+          <Text style={styles.detailLabel}>Modèle:</Text>
+          <Text style={styles.detailValue}>{item.model}</Text>
+        </View>
+        <View style={styles.detailItem}>
+          <Text style={styles.detailLabel}>Fabricant:</Text>
+          <Text style={styles.detailValue}>{item.manufacturer}</Text>
+        </View>
+        {item.assignedTo && (
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Assigné à:</Text>
+            <Text style={styles.detailValue}>{item.assignedTo.name}</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.maintenanceInfo}>
         <View style={styles.maintenanceItem}>
           <Text style={styles.maintenanceLabel}>Dernière maintenance:</Text>
-          <Text style={styles.maintenanceDate}>{item.derniereMaintenance}</Text>
+          <Text style={styles.maintenanceDate}>{formatDate(item.lastMaintenance)}</Text>
         </View>
         <View style={styles.maintenanceItem}>
           <Text style={styles.maintenanceLabel}>Prochaine maintenance:</Text>
-          <Text style={[styles.maintenanceDate, item.alerteActive && styles.maintenanceDateAlert]}>
-            {item.prochaineMaintenance}
+          <Text style={[styles.maintenanceDate, (item.alerts || []).some(alert => alert.isActive) && styles.maintenanceDateAlert]}>
+            {formatDate(item.nextMaintenance)}
           </Text>
         </View>
       </View>
@@ -134,25 +186,36 @@ export default function MaintenanceScreen({ navigation }: any) {
       <View style={styles.actionButtons}>
         <TouchableOpacity
           style={[styles.actionButton, styles.functionalButton]}
-          onPress={() => updateEquipmentStatus(item.id, "Fonctionnel")}
+          onPress={() => updateEquipmentStatus(item._id, "functional")}
         >
           <Text style={styles.actionButtonText}>Fonctionnel</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.maintenanceButton]}
-          onPress={() => updateEquipmentStatus(item.id, "En maintenance")}
+          onPress={() => updateEquipmentStatus(item._id, "maintenance")}
         >
           <Text style={styles.actionButtonText}>Maintenance</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.brokenButton]}
-          onPress={() => updateEquipmentStatus(item.id, "En panne")}
+          onPress={() => updateEquipmentStatus(item._id, "broken")}
         >
           <Text style={styles.actionButtonText}>En panne</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
   )
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2563eb" />
+          <Text style={styles.loadingText}>Chargement des équipements...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -172,24 +235,24 @@ export default function MaintenanceScreen({ navigation }: any) {
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <MaterialIcons name="check-circle" size={24} color="#10b981" />
-          <Text style={styles.statNumber}>{equipments.filter((eq) => eq.etat === "Fonctionnel").length}</Text>
+          <Text style={styles.statNumber}>{equipments.filter((eq) => eq.status === "functional").length}</Text>
           <Text style={styles.statLabel}>Fonctionnels</Text>
         </View>
         <View style={styles.statCard}>
           <MaterialIcons name="build" size={24} color="#f59e0b" />
-          <Text style={styles.statNumber}>{equipments.filter((eq) => eq.etat === "En maintenance").length}</Text>
+          <Text style={styles.statNumber}>{equipments.filter((eq) => eq.status === "maintenance").length}</Text>
           <Text style={styles.statLabel}>En maintenance</Text>
         </View>
         <View style={styles.statCard}>
           <MaterialIcons name="error" size={24} color="#ef4444" />
-          <Text style={styles.statNumber}>{equipments.filter((eq) => eq.etat === "En panne").length}</Text>
+          <Text style={styles.statNumber}>{equipments.filter((eq) => eq.status === "broken").length}</Text>
           <Text style={styles.statLabel}>En panne</Text>
         </View>
       </View>
 
       <View style={styles.filterContainer}>
         <FlatList
-          data={["Tous", "Fonctionnel", "En maintenance", "En panne"] as const}
+          data={["Tous", "functional", "maintenance", "broken"] as const}
           horizontal
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => (
@@ -198,7 +261,7 @@ export default function MaintenanceScreen({ navigation }: any) {
               onPress={() => setSelectedFilter(item)}
             >
               <Text style={[styles.filterButtonText, selectedFilter === item && styles.filterButtonTextActive]}>
-                {item}
+                {item === "Tous" ? "Tous" : getStatusText(item)}
               </Text>
             </TouchableOpacity>
           )}
@@ -209,9 +272,19 @@ export default function MaintenanceScreen({ navigation }: any) {
       <FlatList
         data={filteredEquipments}
         renderItem={renderEquipment}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         style={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="build" size={48} color="#64748b" />
+            <Text style={styles.emptyText}>Aucun équipement trouvé</Text>
+            <Text style={styles.emptySubtext}>Les équipements apparaîtront ici une fois ajoutés</Text>
+          </View>
+        }
       />
     </SafeAreaView>
   )
@@ -362,6 +435,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+  equipmentDetails: {
+    marginBottom: 16,
+  },
+  detailItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: "#64748b",
+  },
+  detailValue: {
+    fontSize: 14,
+    color: "#1e293b",
+    fontWeight: "500",
+  },
   maintenanceInfo: {
     marginBottom: 16,
   },
@@ -406,5 +496,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#1e293b",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#1e293b",
+    marginTop: 16,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#1e293b",
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#64748b",
+    marginTop: 8,
   },
 })

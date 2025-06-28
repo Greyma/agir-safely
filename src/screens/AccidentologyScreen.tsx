@@ -30,10 +30,12 @@ export default function AccidentologyScreen({ navigation }: any) {
     try {
       setLoading(true)
       const data = await apiService.getAccidents()
-      setAccidents(data)
+      // Ensure data is always an array
+      setAccidents(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error fetching accidents:', error)
       Alert.alert('Erreur', 'Impossible de charger les accidents')
+      setAccidents([]) // Set empty array on error
     } finally {
       setLoading(false)
     }
@@ -80,8 +82,12 @@ export default function AccidentologyScreen({ navigation }: any) {
   }
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('fr-FR')
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('fr-FR')
+    } catch (error) {
+      return 'Date invalide'
+    }
   }
 
   const showLocationMap = () => {
@@ -109,6 +115,25 @@ export default function AccidentologyScreen({ navigation }: any) {
     </View>
   )
 
+  // Safe filtering functions with null checks
+  const getSevereAccidentsCount = () => {
+    if (!Array.isArray(accidents)) return 0
+    return accidents.filter((a) => a.severity === "severe" || a.severity === "critical").length
+  }
+
+  const getThisMonthAccidentsCount = () => {
+    if (!Array.isArray(accidents)) return 0
+    return accidents.filter((a) => {
+      try {
+        const accidentDate = new Date(a.date)
+        const now = new Date()
+        return accidentDate.getMonth() === now.getMonth() && accidentDate.getFullYear() === now.getFullYear()
+      } catch (error) {
+        return false
+      }
+    }).length
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -135,15 +160,11 @@ export default function AccidentologyScreen({ navigation }: any) {
           <Text style={styles.statLabel}>Total accidents</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{accidents.filter((a) => a.severity === "severe" || a.severity === "critical").length}</Text>
+          <Text style={styles.statNumber}>{getSevereAccidentsCount()}</Text>
           <Text style={styles.statLabel}>Graves</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{accidents.filter((a) => {
-            const accidentDate = new Date(a.date)
-            const now = new Date()
-            return accidentDate.getMonth() === now.getMonth() && accidentDate.getFullYear() === now.getFullYear()
-          }).length}</Text>
+          <Text style={styles.statNumber}>{getThisMonthAccidentsCount()}</Text>
           <Text style={styles.statLabel}>Ce mois</Text>
         </View>
       </View>

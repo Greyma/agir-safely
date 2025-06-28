@@ -68,7 +68,7 @@ export default function AppointmentScreen({ navigation }: any) {
           <View style={styles.section}>
             <Text style={styles.label}>Motif de la consultation *</Text>
             <View style={styles.motifContainer}>
-              {motifsRDV.map((motif) => (
+              {(motifsRDV || []).map((motif) => (
                 <TouchableOpacity
                   key={motif}
                   style={[styles.motifButton, selectedMotif === motif && styles.motifButtonActive]}

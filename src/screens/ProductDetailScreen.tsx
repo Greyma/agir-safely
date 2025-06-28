@@ -22,28 +22,76 @@ export default function ProductDetailScreen({ route }: any) {
     "Masque respiratoire FFP2",
   ]
 
+  const firstAidMeasures = [
+    "En cas de contact avec la peau: Rincer abondamment à l'eau",
+    "En cas de contact avec les yeux: Rincer pendant 15 minutes",
+    "En cas d'inhalation: Sortir à l'air libre",
+    "En cas d'ingestion: Ne pas faire vomir, consulter un médecin",
+  ]
+
+  const storageConditions = [
+    "Conserver dans un endroit sec et bien ventilé",
+    "Maintenir à température ambiante (15-25°C)",
+    "Éviter l'exposition à la lumière directe",
+    "Tenir hors de portée des enfants",
+    "Ne pas stocker près de sources de chaleur",
+  ]
+
+  const disposalInstructions = [
+    "Ne pas jeter dans les égouts",
+    "Collecter les déchets selon la réglementation",
+    "Contacter un prestataire de traitement des déchets",
+    "Respecter les consignes de tri des déchets dangereux",
+  ]
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.productName}>{product.nom}</Text>
+          <Text style={styles.productName}>{product.name || product.nom}</Text>
           <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{product.categorie}</Text>
+            <Text style={styles.categoryText}>{product.category || product.categorie}</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Informations Générales</Text>
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <MaterialIcons name="science" size={16} color="#64748b" />
+              <Text style={styles.infoLabel}>Nom chimique:</Text>
+              <Text style={styles.infoValue}>{product.chemicalName || product.nomChimique || 'Non spécifié'}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <MaterialIcons name="scale" size={16} color="#64748b" />
+              <Text style={styles.infoLabel}>État physique:</Text>
+              <Text style={styles.infoValue}>{product.physicalState || product.etatPhysique || 'Non spécifié'}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <MaterialIcons name="location-on" size={16} color="#64748b" />
+              <Text style={styles.infoLabel}>Localisation:</Text>
+              <Text style={styles.infoValue}>{product.location || product.localisation || 'Non spécifié'}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <MaterialIcons name="person" size={16} color="#64748b" />
+              <Text style={styles.infoLabel}>Responsable:</Text>
+              <Text style={styles.infoValue}>{product.responsiblePerson?.name || product.responsable || 'Non assigné'}</Text>
+            </View>
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Niveau de Danger</Text>
-          <View style={[styles.dangerIndicator, { backgroundColor: getDangerColor(product.dangerLevel) }]}>
+          <View style={[styles.dangerIndicator, { backgroundColor: getDangerColor(product.hazardClass || product.dangerLevel) }]}>
             <MaterialIcons name="warning" size={20} color="white" />
-            <Text style={styles.dangerText}>{product.dangerLevel}</Text>
+            <Text style={styles.dangerText}>{getDangerText(product.hazardClass || product.dangerLevel)}</Text>
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pictogrammes de Sécurité</Text>
           <View style={styles.pictogramGrid}>
-            {product.pictogrammes.map((picto: string, index: number) => (
+            {(product.pictogrammes || product.hazards || []).map((picto: string, index: number) => (
               <View key={index} style={styles.pictogramCard}>
                 <Text style={styles.pictogramCode}>{picto}</Text>
                 <Text style={styles.pictogramDescription}>{getPictogramDescription(picto)}</Text>
@@ -54,7 +102,7 @@ export default function ProductDetailScreen({ route }: any) {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Risques Identifiés</Text>
-          {product.risques.map((risque: string, index: number) => (
+          {(product.risques || product.hazards || []).map((risque: string, index: number) => (
             <View key={index} style={styles.riskItem}>
               <MaterialIcons name="error-outline" size={16} color="#ef4444" />
               <Text style={styles.riskText}>{risque}</Text>
@@ -64,7 +112,7 @@ export default function ProductDetailScreen({ route }: any) {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Précautions d'Usage</Text>
-          {precautions.map((precaution, index) => (
+          {(precautions || []).map((precaution, index) => (
             <View key={index} style={styles.precautionItem}>
               <MaterialIcons name="check-circle" size={16} color="#10b981" />
               <Text style={styles.precautionText}>{precaution}</Text>
@@ -74,10 +122,40 @@ export default function ProductDetailScreen({ route }: any) {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Équipement de Protection Requis</Text>
-          {equipmentRequired.map((equipment, index) => (
+          {(equipmentRequired || []).map((equipment, index) => (
             <View key={index} style={styles.equipmentItem}>
               <MaterialIcons name="security" size={16} color="#2563eb" />
               <Text style={styles.equipmentText}>{equipment}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Conditions de Stockage</Text>
+          {(storageConditions || []).map((condition, index) => (
+            <View key={index} style={styles.storageItem}>
+              <MaterialIcons name="warehouse" size={16} color="#8b5cf6" />
+              <Text style={styles.storageText}>{condition}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Premiers Secours</Text>
+          {(firstAidMeasures || []).map((measure, index) => (
+            <View key={index} style={styles.firstAidItem}>
+              <MaterialIcons name="healing" size={16} color="#dc2626" />
+              <Text style={styles.firstAidText}>{measure}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Élimination des Déchets</Text>
+          {(disposalInstructions || []).map((instruction, index) => (
+            <View key={index} style={styles.disposalItem}>
+              <MaterialIcons name="delete" size={16} color="#059669" />
+              <Text style={styles.disposalText}>{instruction}</Text>
             </View>
           ))}
         </View>
@@ -93,14 +171,40 @@ export default function ProductDetailScreen({ route }: any) {
 
 function getDangerColor(level: string) {
   switch (level) {
-    case "Faible":
-      return "#10b981"
-    case "Moyen":
-      return "#f59e0b"
+    case "1":
+    case "Très élevé":
+      return "#dc2626"
+    case "2":
     case "Élevé":
       return "#ef4444"
+    case "3":
+    case "Moyen":
+      return "#f59e0b"
+    case "4":
+    case "Faible":
+      return "#10b981"
+    case "5":
+    case "Très faible":
+      return "#059669"
     default:
       return "#6b7280"
+  }
+}
+
+function getDangerText(level: string) {
+  switch (level) {
+    case "1":
+      return "Très élevé"
+    case "2":
+      return "Élevé"
+    case "3":
+      return "Moyen"
+    case "4":
+      return "Faible"
+    case "5":
+      return "Très faible"
+    default:
+      return level || "Non classé"
   }
 }
 
@@ -113,7 +217,7 @@ function getPictogramDescription(code: string) {
     GHS08: "Danger pour la santé",
     GHS09: "Dangereux pour l'environnement",
   }
-  return descriptions[code] || "Danger"
+  return descriptions[code] || code
 }
 
 const styles = StyleSheet.create({
@@ -253,5 +357,58 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  infoGrid: {
+    gap: 16,
+  },
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  infoLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1e293b",
+    minWidth: 100,
+  },
+  infoValue: {
+    fontSize: 14,
+    color: "#64748b",
+    flex: 1,
+  },
+  storageItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  storageText: {
+    fontSize: 14,
+    color: "#1e293b",
+    flex: 1,
+  },
+  firstAidItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  firstAidText: {
+    fontSize: 14,
+    color: "#1e293b",
+    flex: 1,
+  },
+  disposalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  disposalText: {
+    fontSize: 14,
+    color: "#1e293b",
+    flex: 1,
   },
 })

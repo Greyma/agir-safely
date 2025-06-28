@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { MaterialIcons } from '@expo/vector-icons'
 import { apiService } from "../services/api"
 
 export default function AddAccidentScreen({ navigation }: any) {
@@ -85,10 +84,6 @@ export default function AddAccidentScreen({ navigation }: any) {
     }
   }
 
-  const addPhoto = () => {
-    Alert.alert("Photo", "Fonctionnalité d'ajout de photo en développement")
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
@@ -99,6 +94,7 @@ export default function AddAccidentScreen({ navigation }: any) {
             value={title}
             onChangeText={setTitle}
             placeholder="Titre de l'accident"
+            placeholderTextColor="#94a3b8"
           />
         </View>
 
@@ -109,6 +105,7 @@ export default function AddAccidentScreen({ navigation }: any) {
             value={description}
             onChangeText={setDescription}
             placeholder="Décrivez l'accident en détail..."
+            placeholderTextColor="#94a3b8"
             multiline
             numberOfLines={4}
           />
@@ -121,6 +118,7 @@ export default function AddAccidentScreen({ navigation }: any) {
             value={location}
             onChangeText={setLocation}
             placeholder="Ex: Atelier A - Zone de découpe"
+            placeholderTextColor="#94a3b8"
           />
         </View>
 
@@ -131,6 +129,7 @@ export default function AddAccidentScreen({ navigation }: any) {
             value={date} 
             onChangeText={setDate} 
             placeholder="YYYY-MM-DD" 
+            placeholderTextColor="#94a3b8"
           />
         </View>
 
@@ -166,14 +165,6 @@ export default function AddAccidentScreen({ navigation }: any) {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>Photo (optionnel)</Text>
-          <TouchableOpacity style={styles.photoButton} onPress={addPhoto}>
-            <MaterialIcons name="camera-alt" size={24} color="#64748b" />
-            <Text style={styles.photoButtonText}>Ajouter une photo</Text>
-          </TouchableOpacity>
         </View>
 
         <TouchableOpacity 
@@ -217,6 +208,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    color: "#1e293b",
   },
   textArea: {
     backgroundColor: "white",
@@ -227,13 +219,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     height: 100,
     textAlignVertical: "top",
+    color: "#1e293b",
   },
   gravityContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   gravityButton: {
     flex: 1,
+    minWidth: "45%",
     backgroundColor: "white",
     borderWidth: 1,
     borderColor: "#e2e8f0",
@@ -253,21 +248,6 @@ const styles = StyleSheet.create({
   gravityButtonTextActive: {
     color: "white",
   },
-  photoButton: {
-    backgroundColor: "white",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 8,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  photoButtonText: {
-    fontSize: 16,
-    color: "#64748b",
-  },
   submitButton: {
     backgroundColor: "#2563eb",
     borderRadius: 8,
@@ -285,10 +265,12 @@ const styles = StyleSheet.create({
   },
   typeContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   typeButton: {
     flex: 1,
+    minWidth: "45%",
     backgroundColor: "white",
     borderWidth: 1,
     borderColor: "#e2e8f0",

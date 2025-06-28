@@ -7,6 +7,9 @@ import User from './models/User.js';
 import Accident from './models/Accident.js';
 import PPE from './models/PPE.js';
 import ChemicalProduct from './models/ChemicalProduct.js';
+import Equipment from './models/Equipment.js';
+import Disease from './models/Disease.js';
+import Appointment from './models/Appointment.js';
 
 dotenv.config();
 
@@ -385,6 +388,331 @@ app.get('/api/chemicals/:id', authenticateToken, async (req, res) => {
     res.json(chemical);
   } catch (error) {
     console.error('Get chemical error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Update chemical product
+app.put('/api/chemicals/:id', authenticateToken, async (req, res) => {
+  try {
+    const chemical = await ChemicalProduct.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    ).populate('responsiblePerson', 'name email');
+
+    if (!chemical) {
+      return res.status(404).json({ message: 'Chemical product not found' });
+    }
+
+    res.json(chemical);
+  } catch (error) {
+    console.error('Update chemical error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Validation error', 
+        errors: Object.values(error.errors).map(err => err.message) 
+      });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Delete chemical product
+app.delete('/api/chemicals/:id', authenticateToken, async (req, res) => {
+  try {
+    const chemical = await ChemicalProduct.findByIdAndDelete(req.params.id);
+    
+    if (!chemical) {
+      return res.status(404).json({ message: 'Chemical product not found' });
+    }
+
+    res.json({ message: 'Chemical product deleted successfully' });
+  } catch (error) {
+    console.error('Delete chemical error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// ===== PPE ROUTES (Additional) =====
+
+// Update PPE
+app.put('/api/ppe/:id', authenticateToken, async (req, res) => {
+  try {
+    const ppe = await PPE.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    ).populate('assignedTo', 'name email');
+
+    if (!ppe) {
+      return res.status(404).json({ message: 'PPE not found' });
+    }
+
+    res.json(ppe);
+  } catch (error) {
+    console.error('Update PPE error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Validation error', 
+        errors: Object.values(error.errors).map(err => err.message) 
+      });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Delete PPE
+app.delete('/api/ppe/:id', authenticateToken, async (req, res) => {
+  try {
+    const ppe = await PPE.findByIdAndDelete(req.params.id);
+    
+    if (!ppe) {
+      return res.status(404).json({ message: 'PPE not found' });
+    }
+
+    res.json({ message: 'PPE deleted successfully' });
+  } catch (error) {
+    console.error('Delete PPE error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Report PPE damage
+app.post('/api/ppe/:id/damage', authenticateToken, async (req, res) => {
+  try {
+    const { description, severity } = req.body;
+    
+    const ppe = await PPE.findById(req.params.id);
+    if (!ppe) {
+      return res.status(404).json({ message: 'PPE not found' });
+    }
+
+    // Add damage report to maintenance history
+    ppe.maintenanceHistory.push({
+      date: new Date(),
+      type: 'repair',
+      description: description || 'Damage reported',
+      performedBy: req.user.userId,
+      cost: 0
+    });
+
+    // Update condition if severe damage
+    if (severity === 'severe') {
+      ppe.condition = 'damaged';
+    }
+
+    await ppe.save();
+
+    const populatedPPE = await PPE.findById(ppe._id)
+      .populate('assignedTo', 'name email');
+
+    res.json(populatedPPE);
+  } catch (error) {
+    console.error('Report PPE damage error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// ===== EQUIPMENT/MAINTENANCE ROUTES =====
+
+// Get all equipment
+app.get('/api/equipment', authenticateToken, async (req, res) => {
+  try {
+    const equipment = await Equipment.find()
+      .populate('assignedTo', 'name email')
+      .sort({ createdAt: -1 });
+    
+    res.json(equipment);
+  } catch (error) {
+    console.error('Get equipment error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Create new equipment
+app.post('/api/equipment', authenticateToken, async (req, res) => {
+  try {
+    const equipmentData = {
+      ...req.body,
+      assignedTo: req.user.userId
+    };
+
+    const equipment = new Equipment(equipmentData);
+    await equipment.save();
+
+    const populatedEquipment = await Equipment.findById(equipment._id)
+      .populate('assignedTo', 'name email');
+
+    res.status(201).json(populatedEquipment);
+  } catch (error) {
+    console.error('Create equipment error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Validation error', 
+        errors: Object.values(error.errors).map(err => err.message) 
+      });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Get equipment by ID
+app.get('/api/equipment/:id', authenticateToken, async (req, res) => {
+  try {
+    const equipment = await Equipment.findById(req.params.id)
+      .populate('assignedTo', 'name email');
+    
+    if (!equipment) {
+      return res.status(404).json({ message: 'Equipment not found' });
+    }
+
+    res.json(equipment);
+  } catch (error) {
+    console.error('Get equipment error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Update equipment status
+app.put('/api/equipment/:id/status', authenticateToken, async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    const equipment = await Equipment.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    ).populate('assignedTo', 'name email');
+
+    if (!equipment) {
+      return res.status(404).json({ message: 'Equipment not found' });
+    }
+
+    res.json(equipment);
+  } catch (error) {
+    console.error('Update equipment status error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Schedule maintenance
+app.post('/api/equipment/:id/maintenance', authenticateToken, async (req, res) => {
+  try {
+    const { scheduledDate, description, type } = req.body;
+    
+    const equipment = await Equipment.findById(req.params.id);
+    if (!equipment) {
+      return res.status(404).json({ message: 'Equipment not found' });
+    }
+
+    // Add maintenance record
+    equipment.maintenanceHistory.push({
+      date: new Date(),
+      scheduledDate: new Date(scheduledDate),
+      type: type || 'scheduled',
+      description: description || 'Maintenance scheduled',
+      performedBy: req.user.userId,
+      cost: 0
+    });
+
+    // Update status to maintenance
+    equipment.status = 'maintenance';
+
+    await equipment.save();
+
+    const populatedEquipment = await Equipment.findById(equipment._id)
+      .populate('assignedTo', 'name email');
+
+    res.json(populatedEquipment);
+  } catch (error) {
+    console.error('Schedule maintenance error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// ===== OCCUPATIONAL DISEASES ROUTES =====
+
+// Get all diseases
+app.get('/api/diseases', authenticateToken, async (req, res) => {
+  try {
+    const diseases = await Disease.find().sort({ createdAt: -1 });
+    res.json(diseases);
+  } catch (error) {
+    console.error('Get diseases error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Create new disease record
+app.post('/api/diseases', authenticateToken, async (req, res) => {
+  try {
+    const diseaseData = {
+      ...req.body,
+      reportedBy: req.user.userId
+    };
+
+    const disease = new Disease(diseaseData);
+    await disease.save();
+
+    const populatedDisease = await Disease.findById(disease._id)
+      .populate('reportedBy', 'name email');
+
+    res.status(201).json(populatedDisease);
+  } catch (error) {
+    console.error('Create disease error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Validation error', 
+        errors: Object.values(error.errors).map(err => err.message) 
+      });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Schedule appointment
+app.post('/api/appointments', authenticateToken, async (req, res) => {
+  try {
+    const { date, time, type, description } = req.body;
+    
+    const appointment = new Appointment({
+      date: new Date(date),
+      time,
+      type,
+      description,
+      userId: req.user.userId,
+      status: 'scheduled'
+    });
+
+    await appointment.save();
+
+    const populatedAppointment = await Appointment.findById(appointment._id)
+      .populate('userId', 'name email');
+
+    res.status(201).json(populatedAppointment);
+  } catch (error) {
+    console.error('Schedule appointment error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Validation error', 
+        errors: Object.values(error.errors).map(err => err.message) 
+      });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Get user appointments
+app.get('/api/appointments', authenticateToken, async (req, res) => {
+  try {
+    const appointments = await Appointment.find({ userId: req.user.userId })
+      .populate('userId', 'name email')
+      .sort({ date: 1 });
+    
+    res.json(appointments);
+  } catch (error) {
+    console.error('Get appointments error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });

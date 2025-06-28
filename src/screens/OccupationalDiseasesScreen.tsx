@@ -1,88 +1,171 @@
 "use client"
 
-import { useState } from "react"
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from "react-native"
+import { useState, useEffect } from "react"
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MaterialIcons } from '@expo/vector-icons'
+import { apiService } from "../services/api"
 
 interface Disease {
-  id: string
-  nom: string
+  _id: string
+  name: string
   description: string
-  symptomes: string[]
+  symptoms: string[]
+  riskFactors: string[]
   prevention: string[]
-  secteurRisque: string
+  treatment: string[]
+  riskSector: string
+  severity: string
+  status: string
+  reportedBy: {
+    name: string
+    email: string
+  }
+  reportedDate: string
 }
 
-const mockDiseases: Disease[] = [
-  {
-    id: "1",
-    nom: "Troubles Musculo-Squelettiques (TMS)",
-    description:
-      "Affections touchant les muscles, tendons, nerfs, articulations, cartilages et disques intervertébraux.",
-    symptomes: ["Douleurs articulaires", "Raideurs", "Perte de force", "Fourmillements"],
-    prevention: ["Échauffement avant le travail", "Pauses régulières", "Ergonomie du poste", "Formation aux gestes"],
-    secteurRisque: "Manutention",
-  },
-  {
-    id: "2",
-    nom: "Surdité Professionnelle",
-    description: "Perte auditive causée par une exposition prolongée au bruit en milieu professionnel.",
-    symptomes: ["Diminution de l'audition", "Acouphènes", "Sensation d'oreille bouchée"],
-    prevention: ["Port de protections auditives", "Réduction du bruit à la source", "Contrôles audiométriques"],
-    secteurRisque: "Industrie bruyante",
-  },
-  {
-    id: "3",
-    nom: "Dermatoses Professionnelles",
-    description: "Affections cutanées liées à l'exposition à des substances chimiques ou irritantes.",
-    symptomes: ["Rougeurs", "Démangeaisons", "Eczéma", "Brûlures cutanées"],
-    prevention: ["Port de gants adaptés", "Hygiène des mains", "Éviter le contact direct"],
-    secteurRisque: "Chimie",
-  },
-]
-
 export default function OccupationalDiseasesScreen({ navigation }: any) {
-  const [diseases] = useState<Disease[]>(mockDiseases)
-  const [notifications, setNotifications] = useState<string[]>([])
+  const [diseases, setDiseases] = useState<Disease[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
-  const scheduleNotification = (message: string) => {
-    setNotifications((prev) => [...prev, message])
-    Alert.alert("Notification programmée", message)
+  const fetchDiseases = async () => {
+    try {
+      setLoading(true)
+      const data = await apiService.getDiseases()
+      // Ensure data is always an array
+      setDiseases(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Error fetching diseases:', error)
+      Alert.alert('Erreur', 'Impossible de charger les maladies professionnelles')
+      setDiseases([]) // Set empty array on error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const onRefresh = async () => {
+    setRefreshing(true)
+    await fetchDiseases()
+    setRefreshing(false)
+  }
+
+  useEffect(() => {
+    fetchDiseases()
+  }, [])
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "critical":
+        return "#ef4444"
+      case "high":
+        return "#f59e0b"
+      case "medium":
+        return "#3b82f6"
+      case "low":
+        return "#10b981"
+      default:
+        return "#6b7280"
+    }
+  }
+
+  const getSeverityText = (severity: string) => {
+    switch (severity) {
+      case "critical":
+        return "Critique"
+      case "high":
+        return "Élevé"
+      case "medium":
+        return "Moyen"
+      case "low":
+        return "Faible"
+      default:
+        return severity
+    }
+  }
+
+  const scheduleNotification = async (message: string) => {
+    try {
+      // Schedule a medical checkup appointment
+      const appointmentData = {
+        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+        time: "09:00",
+        type: "medical-checkup",
+        description: "Visite médicale annuelle programmée"
+      }
+
+      await apiService.scheduleAppointment(appointmentData)
+      
+      Alert.alert("Rendez-vous programmé", "Votre visite médicale a été programmée dans 7 jours")
+    } catch (error) {
+      console.error('Error scheduling appointment:', error)
+      Alert.alert('Erreur', 'Impossible de programmer le rendez-vous')
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('fr-FR')
+    } catch (error) {
+      return 'Date invalide'
+    }
   }
 
   const renderDisease = ({ item }: { item: Disease }) => (
     <View style={styles.diseaseCard}>
       <View style={styles.diseaseHeader}>
-        <Text style={styles.diseaseName}>{item.nom}</Text>
-        <View style={styles.sectorBadge}>
-          <Text style={styles.sectorText}>{item.secteurRisque}</Text>
+        <Text style={styles.diseaseName}>{item.name}</Text>
+        <View style={[styles.severityBadge, { backgroundColor: getSeverityColor(item.severity) }]}>
+          <Text style={styles.severityText}>{getSeverityText(item.severity)}</Text>
         </View>
       </View>
 
       <Text style={styles.diseaseDescription}>{item.description}</Text>
 
+      <View style={styles.sectorContainer}>
+        <MaterialIcons name="business" size={16} color="#64748b" />
+        <Text style={styles.sectorText}>{item.riskSector}</Text>
+      </View>
+
       <View style={styles.symptomsSection}>
         <Text style={styles.sectionTitle}>Symptômes principaux:</Text>
-        {item.symptomes.slice(0, 2).map((symptome, index) => (
+        {(item.symptoms || []).slice(0, 2).map((symptome, index) => (
           <Text key={index} style={styles.symptomText}>
             • {symptome}
           </Text>
         ))}
-        {item.symptomes.length > 2 && (
-          <Text style={styles.moreText}>+{item.symptomes.length - 2} autres symptômes</Text>
+        {(item.symptoms || []).length > 2 && (
+          <Text style={styles.moreText}>+{(item.symptoms || []).length - 2} autres symptômes</Text>
         )}
       </View>
 
       <View style={styles.preventionSection}>
         <Text style={styles.sectionTitle}>Prévention:</Text>
-        <Text style={styles.preventionText}>• {item.prevention[0]}</Text>
-        {item.prevention.length > 1 && (
-          <Text style={styles.moreText}>+{item.prevention.length - 1} autres mesures</Text>
+        <Text style={styles.preventionText}>• {(item.prevention || [])[0] || 'Aucune mesure préventive'}</Text>
+        {(item.prevention || []).length > 1 && (
+          <Text style={styles.moreText}>+{(item.prevention || []).length - 1} autres mesures</Text>
         )}
+      </View>
+
+      <View style={styles.reportedInfo}>
+        <Text style={styles.reportedLabel}>Signalé par:</Text>
+        <Text style={styles.reportedName}>{item.reportedBy?.name || 'Utilisateur'}</Text>
+        <Text style={styles.reportedDate}>{formatDate(item.reportedDate)}</Text>
       </View>
     </View>
   )
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2563eb" />
+          <Text style={styles.loadingText}>Chargement des maladies professionnelles...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -115,17 +198,32 @@ export default function OccupationalDiseasesScreen({ navigation }: any) {
         </View>
         <View style={styles.statCard}>
           <MaterialIcons name="shield" size={24} color="#10b981" />
-          <Text style={styles.statNumber}>12</Text>
+          <Text style={styles.statNumber}>{diseases.reduce((total, disease) => total + (disease.prevention || []).length, 0)}</Text>
           <Text style={styles.statLabel}>Mesures préventives</Text>
+        </View>
+        <View style={styles.statCard}>
+          <MaterialIcons name="warning" size={24} color="#f59e0b" />
+          <Text style={styles.statNumber}>{diseases.filter(d => d.severity === "high" || d.severity === "critical").length}</Text>
+          <Text style={styles.statLabel}>Risques élevés</Text>
         </View>
       </View>
 
       <FlatList
         data={diseases}
         renderItem={renderDisease}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         style={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="local-hospital" size={48} color="#64748b" />
+            <Text style={styles.emptyText}>Aucune maladie professionnelle répertoriée</Text>
+            <Text style={styles.emptySubtext}>Les maladies apparaîtront ici une fois signalées</Text>
+          </View>
+        }
       />
     </SafeAreaView>
   )
@@ -247,13 +345,13 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
-  sectorBadge: {
+  severityBadge: {
     backgroundColor: "#fef3c7",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  sectorText: {
+  severityText: {
     fontSize: 12,
     color: "#92400e",
     fontWeight: "500",
@@ -263,6 +361,16 @@ const styles = StyleSheet.create({
     color: "#475569",
     lineHeight: 20,
     marginBottom: 16,
+  },
+  sectorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sectorText: {
+    fontSize: 13,
+    color: "#64748b",
+    marginLeft: 8,
   },
   symptomsSection: {
     marginBottom: 12,
@@ -291,5 +399,50 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontStyle: "italic",
     marginTop: 4,
+  },
+  reportedInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  reportedLabel: {
+    fontSize: 12,
+    color: "#64748b",
+    marginRight: 8,
+  },
+  reportedName: {
+    fontSize: 13,
+    color: "#1e293b",
+    fontWeight: "600",
+  },
+  reportedDate: {
+    fontSize: 12,
+    color: "#64748b",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginTop: 16,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#64748b",
   },
 })
