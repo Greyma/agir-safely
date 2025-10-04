@@ -4,15 +4,18 @@ import { useState } from "react"
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { apiService } from "../services/api"
+import { MaterialIcons } from '@expo/vector-icons'; 
 
 export default function AddAccidentScreen({ navigation }: any) {
-  const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [location, setLocation] = useState("")
   const [date, setDate] = useState("")
   const [severity, setSeverity] = useState<"minor" | "moderate" | "severe" | "critical">("minor")
   const [type, setType] = useState<"slip" | "fall" | "cut" | "burn" | "chemical" | "electrical" | "mechanical" | "other">("other")
   const [loading, setLoading] = useState(false)
+  const [consequences, setConsequences] = useState("")
+  const [causes, setCauses] = useState<string[]>([])
+  const [causeInput, setCauseInput] = useState("")
 
   const getSeverityText = (severity: string) => {
     switch (severity) {
@@ -53,26 +56,32 @@ export default function AddAccidentScreen({ navigation }: any) {
   }
 
   const handleSubmit = async () => {
-    if (!title || !description || !location || !date) {
+    if (!description || !location || !date || !consequences || causes.length === 0) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs obligatoires")
       return
     }
 
     try {
       setLoading(true)
-      
+
+      // Ensure ISO date string compatible with backend Date field
+      const isoDate = new Date(date).toISOString()
+
+      const title = description.trim().split(/\n|\./)[0]
+        .slice(0, 80) || 'Accident'
+
       const accidentData = {
         title,
-        description,
-        location,
-        date: new Date(date).toISOString(),
-        severity,
-        type,
+        description: `${description}\n\nConséquences humaines: ${consequences}\nCauses principales: ${causes.join(", ")}`,
+        date: isoDate,
+        location: location,
+        severity: severity,
+        type: type,
         status: 'reported'
       }
 
       await apiService.createAccident(accidentData)
-      
+
       Alert.alert("Succès", "L'accident a été enregistré avec succès", [
         { text: "OK", onPress: () => navigation.goBack() },
       ])
@@ -87,7 +96,26 @@ export default function AddAccidentScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
+        {/* Replace Titre by Type d'accident at the top */}
         <View style={styles.section}>
+          <Text style={styles.label}>Type d'accident *</Text>
+          <View style={styles.typeContainer}>
+            {(["slip", "fall", "cut", "burn", "chemical", "electrical", "mechanical", "other"] as const).map((accidentType) => (
+              <TouchableOpacity
+                key={accidentType}
+                style={[styles.typeButton, type === accidentType && styles.typeButtonActive]}
+                onPress={() => setType(accidentType)}
+              >
+                <Text style={[styles.typeButtonText, type === accidentType && styles.typeButtonTextActive]}>
+                  {getTypeText(accidentType)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Remove the Titre field */}
+        {/* <View style={styles.section}>
           <Text style={styles.label}>Titre *</Text>
           <TextInput
             style={styles.input}
@@ -96,7 +124,7 @@ export default function AddAccidentScreen({ navigation }: any) {
             placeholder="Titre de l'accident"
             placeholderTextColor="#94a3b8"
           />
-        </View>
+        </View> */}
 
         <View style={styles.section}>
           <Text style={styles.label}>Description *</Text>
@@ -151,20 +179,55 @@ export default function AddAccidentScreen({ navigation }: any) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Type d'accident</Text>
-          <View style={styles.typeContainer}>
-            {(["slip", "fall", "cut", "burn", "chemical", "electrical", "mechanical", "other"] as const).map((accidentType) => (
-              <TouchableOpacity
-                key={accidentType}
-                style={[styles.typeButton, type === accidentType && styles.typeButtonActive]}
-                onPress={() => setType(accidentType)}
-              >
-                <Text style={[styles.typeButtonText, type === accidentType && styles.typeButtonTextActive]}>
-                  {getTypeText(accidentType)}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <Text style={styles.label}>Conséquences humaines *</Text>
+          <TextInput
+            style={styles.textArea}
+            value={consequences}
+            onChangeText={setConsequences}
+            placeholder="Ex: 2 blessés, 1 décès, évacuation du site..."
+            placeholderTextColor="#94a3b8"
+            multiline
+            
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.label}>Causes principales *</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              value={causeInput}
+              onChangeText={setCauseInput}
+              placeholder="Ajouter une cause principale"
+              placeholderTextColor="#94a3b8"
+            />
+            <TouchableOpacity
+              style={{
+                marginLeft: 8,
+                backgroundColor: "#2563eb",
+                borderRadius: 8,
+                padding: 10,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+              onPress={() => {
+                if (causeInput.trim()) {
+                  setCauses([...causes, causeInput.trim()])
+                  setCauseInput("")
+                }
+              }}
+            >
+              <MaterialIcons name="add" size={20} color="white" />
+            </TouchableOpacity>
           </View>
+          {causes.map((cause, idx) => (
+            <View key={idx} style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+              <Text style={{ color: "#f59e0b", fontSize: 14 }}>• {cause}</Text>
+              <TouchableOpacity onPress={() => setCauses(causes.filter((_, i) => i !== idx))}>
+                <MaterialIcons name="close" size={16} color="#ef4444" style={{ marginLeft: 8 }} />
+              </TouchableOpacity>
+            </View>
+          ))}
         </View>
 
         <TouchableOpacity 
@@ -289,5 +352,62 @@ const styles = StyleSheet.create({
   },
   typeButtonTextActive: {
     color: "white",
+  },
+  causesContainer: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 8,
+    padding: 12,
+  },
+  causeItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  causeInput: {
+    flex: 1,
+    backgroundColor: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: "#1e293b",
+  },
+  removeCauseButton: {
+    marginLeft: 8,
+    backgroundColor: "#ef4444",
+    borderRadius: 8,
+    padding: 8,
+  },
+  removeCauseButtonText: {
+    color: "white",
+    fontWeight: "600",
+  },
+  addCauseContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  addCauseInput: {
+    flex: 1,
+    backgroundColor: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: "#1e293b",
+  },
+  addCauseButton: {
+    marginLeft: 8,
+    backgroundColor: "#2563eb",
+    borderRadius: 8,
+    padding: 8,
+  },
+  addCauseButtonText: {
+    color: "white",
+    fontWeight: "600",
   },
 })

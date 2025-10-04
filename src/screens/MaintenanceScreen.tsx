@@ -108,19 +108,7 @@ export default function MaintenanceScreen({ navigation }: any) {
     }
   }
 
-  const updateEquipmentStatus = async (id: string, newStatus: Equipment["status"]) => {
-    try {
-      await apiService.updateEquipmentStatus(id, newStatus)
-      
-      // Update local state
-      setEquipments((prev) => (prev || []).map((eq) => (eq._id === id ? { ...eq, status: newStatus } : eq)))
-      
-      Alert.alert("Statut mis à jour", `L'équipement a été marqué comme "${getStatusText(newStatus)}"`)
-    } catch (error) {
-      console.error('Error updating equipment status:', error)
-      Alert.alert('Erreur', 'Impossible de mettre à jour le statut')
-    }
-  }
+  // Removed per request: status change buttons and updater
 
   const formatDate = (dateString: string) => {
     try {
@@ -183,28 +171,12 @@ export default function MaintenanceScreen({ navigation }: any) {
         </View>
       </View>
 
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.functionalButton]}
-          onPress={() => updateEquipmentStatus(item._id, "functional")}
-        >
-          <Text style={styles.actionButtonText}>Fonctionnel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.maintenanceButton]}
-          onPress={() => updateEquipmentStatus(item._id, "maintenance")}
-        >
-          <Text style={styles.actionButtonText}>Maintenance</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.brokenButton]}
-          onPress={() => updateEquipmentStatus(item._id, "broken")}
-        >
-          <Text style={styles.actionButtonText}>En panne</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Status action buttons removed */}
     </TouchableOpacity>
   )
+
+  const maintenanceProgramPdf =
+    "https://raw.githubusercontent.com/yacinecs/pdf/8b4a2647d2073c52fc67935cd00388afa42e3318/3.SUIVI%20DU%20PLAN%20DE%20MAINTENANCE%20PREVENTIF%20(1)(1).pdf"
 
   if (loading) {
     return (
@@ -277,6 +249,26 @@ export default function MaintenanceScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListFooterComponent={
+          <View style={styles.programSection}>
+            <Text style={styles.programTitle}>Programme de maintenance</Text>
+            <Text style={styles.programSubtitle}>
+              Consulter le plan de suivi préventif
+            </Text>
+            <TouchableOpacity
+              style={styles.programButton}
+              onPress={() =>
+                navigation.navigate("PdfViewer", {
+                  pdfUrl: maintenanceProgramPdf,
+                  title: "Programme de maintenance",
+                })
+              }
+            >
+              <MaterialIcons name="picture-as-pdf" size={20} color="white" />
+              <Text style={styles.programButtonText}>Voir le PDF</Text>
+            </TouchableOpacity>
+          </View>
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -472,31 +464,7 @@ const styles = StyleSheet.create({
   maintenanceDateAlert: {
     color: "#ef4444",
   },
-  actionButtons: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignItems: "center",
-  },
-  functionalButton: {
-    backgroundColor: "#dcfce7",
-  },
-  maintenanceButton: {
-    backgroundColor: "#fef3c7",
-  },
-  brokenButton: {
-    backgroundColor: "#fecaca",
-  },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#1e293b",
-  },
+  // Removed styles for action buttons per request
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -524,4 +492,43 @@ const styles = StyleSheet.create({
     color: "#64748b",
     marginTop: 8,
   },
+  programSection: {
+    marginTop: 24,
+    marginBottom: 40,
+    backgroundColor: "white",
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  programTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 4,
+  },
+  programSubtitle: {
+    fontSize: 13,
+    color: "#64748b",
+    marginBottom: 12,
+  },
+  programButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#2563eb",
+    paddingVertical: 12,
+    justifyContent: "center",
+    borderRadius: 8,
+  },
+  programButtonText: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "600",
+  },
 })
+
+

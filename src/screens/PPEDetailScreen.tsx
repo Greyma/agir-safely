@@ -103,38 +103,27 @@ export default function PPEDetailScreen({ route }: any) {
       <ScrollView style={styles.content}>
         <View style={styles.header}>
           <View style={styles.ppeInfo}>
-            <Text style={styles.ppeName}>{ppe.nom}</Text>
-            <Text style={styles.ppeType}>{ppe.type}</Text>
-            <Text style={styles.ppeNorme}>Norme: {ppe.norme}</Text>
+            <Text style={styles.ppeName}>{ppe.name}</Text>
+            <Text style={styles.ppeType}>{ppe.category}</Text>
+            <Text style={styles.ppeNorme}>Norme: {ppe.safetyStandard || 'Non spécifiée'}</Text>
           </View>
-          <View style={[styles.stateBadge, { backgroundColor: getStateColor(ppe.etat) }]}>
-            <Text style={styles.stateText}>{ppe.etat}</Text>
+          <View style={[styles.stateBadge, { backgroundColor: getStateColor(ppe.condition) }]}>
+            <Text style={styles.stateText}>{ppe.condition === 'excellent' ? 'Excellent' : ppe.condition === 'good' ? 'Bon' : ppe.condition === 'fair' ? 'Usé' : ppe.condition === 'poor' ? 'Mauvais' : ppe.condition === 'damaged' ? 'À remplacer' : ppe.condition}</Text>
           </View>
         </View>
 
         <View style={styles.availabilityCard}>
           <Text style={styles.cardTitle}>Disponibilité</Text>
           <View style={styles.availabilityInfo}>
-            <Text style={styles.availabilityLabel}>Zone: {ppe.zone}</Text>
-            <Text style={[styles.availabilityText, { color: getAvailabilityColor(ppe.disponible, ppe.total) }]}>
-              {ppe.disponible}/{ppe.total} disponibles
+            <Text style={styles.availabilityLabel}>Zone: {ppe.location}</Text>
+            <Text style={[styles.availabilityText, { color: ppe.status === 'available' ? '#10b981' : ppe.status === 'assigned' ? '#f59e0b' : '#ef4444' }]}>
+              {ppe.status === 'available' ? 'Disponible' : ppe.status === 'assigned' ? 'Assigné' : ppe.status === 'maintenance' ? 'Maintenance' : ppe.status === 'retired' ? 'Retiré' : ppe.status === 'lost' ? 'Perdu' : ppe.status} • {ppe.quantity} {ppe.unit}
             </Text>
           </View>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: `${(ppe.disponible / ppe.total) * 100}%`,
-                  backgroundColor: getAvailabilityColor(ppe.disponible, ppe.total),
-                },
-              ]}
-            />
-          </View>
-          {ppe.disponible === 0 && (
+          {ppe.status === 'maintenance' && (
             <View style={styles.stockAlert}>
               <MaterialIcons name="warning" size={16} color="#ef4444" />
-              <Text style={styles.stockAlertText}>Stock épuisé - Commande nécessaire</Text>
+              <Text style={styles.stockAlertText}>En maintenance - Indisponible</Text>
             </View>
           )}
         </View>
@@ -143,20 +132,42 @@ export default function PPEDetailScreen({ route }: any) {
           <Text style={styles.cardTitle}>Spécifications</Text>
           <View style={styles.specRow}>
             <Text style={styles.specLabel}>Norme de sécurité:</Text>
-            <Text style={styles.specValue}>{ppe.norme}</Text>
+            <Text style={styles.specValue}>{ppe.safetyStandard || 'Non spécifiée'}</Text>
           </View>
           <View style={styles.specRow}>
             <Text style={styles.specLabel}>Conditions d'utilisation:</Text>
-            <Text style={styles.specValue}>Environnement industriel</Text>
+            <Text style={styles.specValue}>{ppe.usageCondition || 'Non spécifiées'}</Text>
           </View>
           <View style={styles.specRow}>
             <Text style={styles.specLabel}>Durée de vie:</Text>
-            <Text style={styles.specValue}>12 mois</Text>
+            <Text style={styles.specValue}>{ppe.lifespan || 'Non spécifiée'}</Text>
           </View>
           <View style={styles.specRow}>
             <Text style={styles.specLabel}>Dernière inspection:</Text>
-            <Text style={styles.specValue}>15/01/2024</Text>
+            <Text style={styles.specValue}>{new Date(ppe.lastInspection).toLocaleDateString('fr-FR')}</Text>
           </View>
+          <View style={styles.specRow}>
+            <Text style={styles.specLabel}>Prochaine inspection:</Text>
+            <Text style={styles.specValue}>{new Date(ppe.nextInspection).toLocaleDateString('fr-FR')}</Text>
+          </View>
+          <View style={styles.specRow}>
+            <Text style={styles.specLabel}>Fabricant:</Text>
+            <Text style={styles.specValue}>{ppe.manufacturer || 'Non spécifié'}</Text>
+          </View>
+          <View style={styles.specRow}>
+            <Text style={styles.specLabel}>Modèle:</Text>
+            <Text style={styles.specValue}>{ppe.model || 'Non spécifié'}</Text>
+          </View>
+          <View style={styles.specRow}>
+            <Text style={styles.specLabel}>N° de série:</Text>
+            <Text style={styles.specValue}>{ppe.serialNumber || 'Non spécifié'}</Text>
+          </View>
+          {ppe.assignedTo?.name && (
+            <View style={styles.specRow}>
+              <Text style={styles.specLabel}>Assigné à:</Text>
+              <Text style={styles.specValue}>{ppe.assignedTo.name}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.actionsCard}>
@@ -223,19 +234,15 @@ export default function PPEDetailScreen({ route }: any) {
         <View style={styles.catalogCard}>
           <Text style={styles.cardTitle}>Informations Catalogue</Text>
           <View style={styles.catalogInfo}>
-            <View style={styles.catalogImagePlaceholder}>
-              <MaterialIcons name="image" size={40} color="#64748b" />
-            </View>
             <View style={styles.catalogDetails}>
-              <Text style={styles.catalogName}>{ppe.nom}</Text>
+              <Text style={styles.catalogName}>{ppe.name}</Text>
               <Text style={styles.catalogDescription}>
-                Équipement de protection individuelle conforme aux normes européennes. Conçu pour une utilisation en
-                milieu industriel.
+                {ppe.description || "Équipement de protection individuelle conforme aux normes européennes."}
               </Text>
               <View style={styles.catalogSpecs}>
-                <Text style={styles.catalogSpec}>• Résistant aux chocs</Text>
-                <Text style={styles.catalogSpec}>• Matériaux durables</Text>
-                <Text style={styles.catalogSpec}>• Confort d'utilisation</Text>
+                <Text style={styles.catalogSpec}>• Conforme à la norme {ppe.safetyStandard || 'européenne'}</Text>
+                <Text style={styles.catalogSpec}>• Durée de vie: {ppe.lifespan || 'Variable'}</Text>
+                <Text style={styles.catalogSpec}>• Fabricant: {ppe.manufacturer || 'Non spécifié'}</Text>
               </View>
             </View>
           </View>

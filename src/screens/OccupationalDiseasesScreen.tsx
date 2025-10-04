@@ -1,16 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from "react-native"
+import { useState } from "react"
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Modal, ScrollView } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MaterialIcons } from '@expo/vector-icons'
 import { apiService } from "../services/api"
+
+interface DiseaseSymptom {
+  label: string
+  score: number
+}
 
 interface Disease {
   _id: string
   name: string
   description: string
-  symptoms: string[]
+  symptoms: DiseaseSymptom[]
   riskFactors: string[]
   prevention: string[]
   treatment: string[]
@@ -24,35 +29,170 @@ interface Disease {
   reportedDate: string
 }
 
-export default function OccupationalDiseasesScreen({ navigation }: any) {
-  const [diseases, setDiseases] = useState<Disease[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-
-  const fetchDiseases = async () => {
-    try {
-      setLoading(true)
-      const data = await apiService.getDiseases()
-      // Ensure data is always an array
-      setDiseases(Array.isArray(data) ? data : [])
-    } catch (error) {
-      console.error('Error fetching diseases:', error)
-      Alert.alert('Erreur', 'Impossible de charger les maladies professionnelles')
-      setDiseases([]) // Set empty array on error
-    } finally {
-      setLoading(false)
-    }
+// Replace your test data with the following:
+const testDiseases: Disease[] = [
+  {
+    _id: "1",
+    name: "Polynévrite (N-Hexane)",
+    description: "Polynévrite liée à l'exposition au N-Hexane.",
+    symptoms: [
+      { label: "Je manipule régulièrement des solvants contenant du N-Hexane", score: 1 },
+      { label: "J'ai des picotements ou engourdissements dans les mains ou les pieds", score: 2 },
+      { label: "J'ai une perte de sensibilité (au chaud, au froid, au toucher)", score: 2 },
+      { label: "J'ai des crampes musculaires fréquentes (surtout la nuit)", score: 2 },
+      { label: "J'ai une faiblesse musculaire (je lâche facilement des objets)", score: 3 },
+      { label: "J'ai des difficultés à marcher ou à garder l'équilibre", score: 3 },
+      { label: "Un médecin m'a déjà parlé de neuropathie ou polynévrite", score: 4 }
+    ],
+    riskFactors: ["Exposition au N-Hexane"],
+    prevention: ["Utiliser des équipements de protection", "Limiter l'exposition"],
+    treatment: ["Arrêt de l'exposition", "Suivi médical"],
+    riskSector: "Industrie chimique",
+    severity: "high",
+    status: "active",
+    reportedBy: { name: "Médecin du travail", email: "medecin@entreprise.com" },
+    reportedDate: new Date().toISOString()
+  },
+  {
+    _id: "2",
+    name: "Inflammations Cutanées (Chromates)",
+    description: "Inflammations cutanées liées aux chromates.",
+    symptoms: [
+      { label: "Je manipule régulièrement des produits contenant du chromate", score: 1 },
+      { label: "J'ai des rougeurs ou de l'eczéma sur la peau", score: 2 },
+      { label: "J'ai des plaies ou ulcérations qui cicatrisent mal", score: 3 },
+      { label: "Mes symptômes cutanés apparaissent ou s'aggravent au travail", score: 3 },
+      { label: "Mes symptômes cutanés disparaissent ou s'améliorent le week-end", score: 2 },
+      { label: "J'ai déjà eu un diagnostic de dermatite professionnelle", score: 4 }
+    ],
+    riskFactors: ["Exposition aux chromates"],
+    prevention: ["Port de gants", "Hygiène de la peau"],
+    treatment: ["Consultation dermatologique"],
+    riskSector: "Industrie",
+    severity: "medium",
+    status: "active",
+    reportedBy: { name: "Médecin du travail", email: "medecin@entreprise.com" },
+    reportedDate: new Date().toISOString()
+  },
+  {
+    _id: "3",
+    name: "Maladies Respiratoires (Chromates)",
+    description: "Maladies respiratoires liées aux chromates.",
+    symptoms: [
+      { label: "Je travaille dans un environnement poussiéreux ou avec des fumées contenant des chromates", score: 1 },
+      { label: "J'ai une toux persistante depuis plus de 3 semaines", score: 2 },
+      { label: "J'ai un essoufflement inhabituel à l'effort", score: 2 },
+      { label: "J'ai des irritations fréquentes du nez ou des saignements", score: 2 },
+      { label: "J'ai des crises d'asthme ou des sifflements respiratoires", score: 3 },
+      { label: "J'ai déjà eu un diagnostic de bronchite chronique ou de maladie respiratoire", score: 4 }
+    ],
+    riskFactors: ["Exposition aux chromates"],
+    prevention: ["Port de masque", "Ventilation"],
+    treatment: ["Consultation pneumologique"],
+    riskSector: "Industrie",
+    severity: "high",
+    status: "active",
+    reportedBy: { name: "Médecin du travail", email: "medecin@entreprise.com" },
+    reportedDate: new Date().toISOString()
+  },
+  {
+    _id: "4",
+    name: "Cancers liés aux Chromates",
+    description: "Cancers liés à l'exposition aux chromates.",
+    symptoms: [
+      { label: "J'ai une exposition ancienne et prolongée aux produits contenant du chrome VI", score: 1 },
+      { label: "J'ai une toux chronique depuis plusieurs mois", score: 2 },
+      { label: "J'ai perdu du poids sans raison apparente", score: 3 },
+      { label: "Je souffre d'une fatigue persistante", score: 2 },
+      { label: "J'ai eu des saignements de nez répétés ou inhabituels", score: 2 },
+      { label: "Un médecin a évoqué une suspicion de cancer professionnel", score: 4 }
+    ],
+    riskFactors: ["Exposition au chrome VI"],
+    prevention: ["Réduction de l'exposition", "Surveillance médicale"],
+    treatment: ["Consultation spécialisée"],
+    riskSector: "Industrie",
+    severity: "critical",
+    status: "active",
+    reportedBy: { name: "Médecin du travail", email: "medecin@entreprise.com" },
+    reportedDate: new Date().toISOString()
+  },
+  {
+    _id: "5",
+    name: "Encéphalopathie aiguë",
+    description: "Encéphalopathie aiguë liée à l'exposition professionnelle.",
+    symptoms: [
+      { label: "J’ai des maux de tête persistants", score: 2 },
+      { label: "J’ai des troubles de mémoire ou de concentration", score: 2 },
+      { label: "Je me sens confus ou désorienté au travail", score: 3 },
+      { label: "J’ai des troubles de l’équilibre ou des vertiges", score: 2 },
+      { label: "J’ai des nausées ou vomissements inexpliqués", score: 2 },
+      { label: "J’ai eu des tremblements ou des secousses involontaires", score: 3 },
+      { label: "J’ai présenté des convulsions", score: 4 },
+      { label: "J’ai eu une perte de connaissance ou un évanouissement", score: 4 }
+    ],
+    riskFactors: [],
+    prevention: [],
+    treatment: [],
+    riskSector: "Tous",
+    severity: "critical",
+    status: "active",
+    reportedBy: { name: "Médecin du travail", email: "medecin@entreprise.com" },
+    reportedDate: new Date().toISOString()
+  },
+  {
+    _id: "6",
+    name: "Anémie (Plomb)",
+    description: "Anémie liée à l'exposition au plomb.",
+    symptoms: [
+      { label: "Je me sens fatigué même au repos", score: 2 },
+      { label: "J'ai une pâleur inhabituelle (peau, lèvres)", score: 2 },
+      { label: "J'ai un essoufflement rapide lors d'un effort léger", score: 2 },
+      { label: "J'ai des étourdissements ou vertiges fréquents", score: 2 },
+      { label: "Un médecin m'a déjà parlé d'anémie liée au plomb", score: 4 }
+    ],
+    riskFactors: [],
+    prevention: [],
+    treatment: [],
+    riskSector: "Industrie",
+    severity: "medium",
+    status: "active",
+    reportedBy: { name: "Médecin du travail", email: "medecin@entreprise.com" },
+    reportedDate: new Date().toISOString()
+  },
+  {
+    _id: "7",
+    name: "Néphropathie (Atteinte rénale due au Plomb)",
+    description: "Atteinte rénale liée à l'exposition au plomb.",
+    symptoms: [
+      { label: "J'ai des douleurs lombaires régulières (bas du dos)", score: 2 },
+      { label: "J'ai remarqué une diminution de la quantité d'urine", score: 2 },
+      { label: "Mes urines sont anormales (sombres, mousseuses, sang)", score: 3 },
+      { label: "J'ai les chevilles ou pieds gonflés en fin de journée", score: 2 },
+      { label: "J'ai une hypertension artérielle diagnostiquée", score: 3 },
+      { label: "Un médecin m'a déjà parlé d'une atteinte rénale", score: 4 }
+    ],
+    riskFactors: [],
+    prevention: [],
+    treatment: [],
+    riskSector: "Industrie",
+    severity: "high",
+    status: "active",
+    reportedBy: { name: "Médecin du travail", email: "medecin@entreprise.com" },
+    reportedDate: new Date().toISOString()
   }
+]
+
+export default function OccupationalDiseasesScreen({ navigation }: any) {
+  const [diseases, setDiseases] = useState<Disease[]>(testDiseases)
+  const [refreshing, setRefreshing] = useState(false)
+  const [selectedDisease, setSelectedDisease] = useState<Disease | null>(null)
+  const [modalVisible, setModalVisible] = useState(false)
 
   const onRefresh = async () => {
     setRefreshing(true)
-    await fetchDiseases()
+    setDiseases(testDiseases)
     setRefreshing(false)
   }
-
-  useEffect(() => {
-    fetchDiseases()
-  }, [])
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -112,51 +252,84 @@ export default function OccupationalDiseasesScreen({ navigation }: any) {
     }
   }
 
+  const openDiseaseDetail = (disease: Disease) => {
+    setSelectedDisease(disease)
+    setModalVisible(true)
+  }
+
+  const closeDiseaseDetail = () => {
+    setModalVisible(false)
+    setSelectedDisease(null)
+  }
+
+  // Map for display-only symptoms in Maladies screen
+  const displaySymptomsMap: { [key: string]: string[] } = {
+    "Polynévrite (N-Hexane)": [
+      "Picotements ou engourdissements dans les mains ou les pieds",
+      "Perte de sensibilité (au chaud, au froid, au toucher)",
+      "Crampes musculaires fréquentes (surtout la nuit)",
+      "Faiblesse musculaire",
+      "Difficultés à marcher ou à garder l'équilibre"
+    ],
+    "Inflammations Cutanées (Chromates)": [
+      "des rougeurs ou de l'eczéma sur la peau",
+      "des plaies ou ulcérations qui cicatrisent mal"
+    ],
+    "Maladies Respiratoires (Chromates)": [
+      "une toux persistante",
+      "un essoufflement inhabituel",
+      "des irritations fréquentes du nez ou des saignements",
+      "des crises d'asthme ou des sifflements respiratoires"
+    ],
+    "Cancers liés aux Chromates": [
+      "une toux chronique",
+      "fatigue persistante",
+      "perte de poids",
+      "des saignements de nez"
+    ],
+    "Encéphalopathie aiguë": [
+      "des maux de tête",
+      "des troubles de mémoire ou de concentration",
+      "des troubles de l’équilibre ou des vertiges",
+      "des nausées ou vomissements",
+      "des tremblements ou des secousses",
+      "des convulsions",
+      "une perte de connaissance ou un évanouissement"
+    ],
+    "Anémie (Plomb)": [
+      "Fatigue",
+      "une pâleur inhabituelle (peau, lèvres)",
+      "des étourdissements ou vertiges"
+    ],
+    "Néphropathie (Atteinte rénale due au Plomb)": [
+      "des douleurs lombaires (bas du dos)",
+      "une diminution de la quantité d'urine",
+      "les chevilles ou pieds gonflés",
+      "une hypertension artérielle"
+    ]
+  }
+
   const renderDisease = ({ item }: { item: Disease }) => (
     <View style={styles.diseaseCard}>
-      <View style={styles.diseaseHeader}>
-        <Text style={styles.diseaseName}>{item.name}</Text>
-        <View style={[styles.severityBadge, { backgroundColor: getSeverityColor(item.severity) }]}>
-          <Text style={styles.severityText}>{getSeverityText(item.severity)}</Text>
-        </View>
-      </View>
-
-      <Text style={styles.diseaseDescription}>{item.description}</Text>
-
-      <View style={styles.sectorContainer}>
-        <MaterialIcons name="business" size={16} color="#64748b" />
-        <Text style={styles.sectorText}>{item.riskSector}</Text>
-      </View>
-
-      <View style={styles.symptomsSection}>
-        <Text style={styles.sectionTitle}>Symptômes principaux:</Text>
-        {(item.symptoms || []).slice(0, 2).map((symptome, index) => (
-          <Text key={index} style={styles.symptomText}>
-            • {symptome}
+      <Text style={styles.diseaseName}>Maladie : {item.name.replace(/\s*\(.*\)/, "")}</Text>
+      <Text style={styles.diseaseSymptoms}>Symptômes :</Text>
+      <View style={styles.symptomList}>
+        {(displaySymptomsMap[item.name] || item.symptoms.map(s => s.label)).map((symptom, idx) => (
+          <Text key={idx} style={styles.symptomItem}>
+            {`${idx + 1}. ${symptom}`}
           </Text>
         ))}
-        {(item.symptoms || []).length > 2 && (
-          <Text style={styles.moreText}>+{(item.symptoms || []).length - 2} autres symptômes</Text>
-        )}
       </View>
-
-      <View style={styles.preventionSection}>
-        <Text style={styles.sectionTitle}>Prévention:</Text>
-        <Text style={styles.preventionText}>• {(item.prevention || [])[0] || 'Aucune mesure préventive'}</Text>
-        {(item.prevention || []).length > 1 && (
-          <Text style={styles.moreText}>+{(item.prevention || []).length - 1} autres mesures</Text>
-        )}
-      </View>
-
-      <View style={styles.reportedInfo}>
-        <Text style={styles.reportedLabel}>Signalé par:</Text>
-        <Text style={styles.reportedName}>{item.reportedBy?.name || 'Utilisateur'}</Text>
-        <Text style={styles.reportedDate}>{formatDate(item.reportedDate)}</Text>
-      </View>
+      <TouchableOpacity
+        style={styles.testButton}
+        onPress={() => navigation.navigate("DiseaseTest", { disease: item })}
+      >
+        <Text style={styles.testButtonText}>Faire le test</Text>
+      </TouchableOpacity>
     </View>
   )
 
-  if (loading) {
+  if (refreshing) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -190,24 +363,6 @@ export default function OccupationalDiseasesScreen({ navigation }: any) {
         </View>
       </View>
 
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <MaterialIcons name="local-hospital" size={24} color="#ef4444" />
-          <Text style={styles.statNumber}>{diseases.length}</Text>
-          <Text style={styles.statLabel}>Maladies répertoriées</Text>
-        </View>
-        <View style={styles.statCard}>
-          <MaterialIcons name="shield" size={24} color="#10b981" />
-          <Text style={styles.statNumber}>{diseases.reduce((total, disease) => total + (disease.prevention || []).length, 0)}</Text>
-          <Text style={styles.statLabel}>Mesures préventives</Text>
-        </View>
-        <View style={styles.statCard}>
-          <MaterialIcons name="warning" size={24} color="#f59e0b" />
-          <Text style={styles.statNumber}>{diseases.filter(d => d.severity === "high" || d.severity === "critical").length}</Text>
-          <Text style={styles.statLabel}>Risques élevés</Text>
-        </View>
-      </View>
-
       <FlatList
         data={diseases}
         renderItem={renderDisease}
@@ -225,6 +380,50 @@ export default function OccupationalDiseasesScreen({ navigation }: any) {
           </View>
         }
       />
+
+      {/* Disease Detail Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={closeDiseaseDetail}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView>
+              <Text style={styles.modalTitle}>{selectedDisease?.name}</Text>
+              <Text style={styles.modalDesc}>{selectedDisease?.description}</Text>
+              <Text style={styles.modalSection}>Symptômes et scores :</Text>
+              {selectedDisease?.symptoms.map((s, idx) => (
+                <Text key={idx} style={styles.modalSymptom}>• {s.label} <Text style={{color:'#2563eb'}}>({s.score})</Text></Text>
+              ))}
+              <Text style={styles.modalSection}>Facteurs de risque :</Text>
+              {selectedDisease?.riskFactors.map((rf, idx) => (
+                <Text key={idx} style={styles.modalText}>- {rf}</Text>
+              ))}
+              <Text style={styles.modalSection}>Prévention :</Text>
+              {selectedDisease?.prevention.map((p, idx) => (
+                <Text key={idx} style={styles.modalText}>- {p}</Text>
+              ))}
+              <Text style={styles.modalSection}>Traitement :</Text>
+              {selectedDisease?.treatment.map((t, idx) => (
+                <Text key={idx} style={styles.modalText}>- {t}</Text>
+              ))}
+              <Text style={styles.modalSection}>Secteur à risque :</Text>
+              <Text style={styles.modalText}>{selectedDisease?.riskSector}</Text>
+              <Text style={styles.modalSection}>Gravité :</Text>
+              <Text style={styles.modalText}>{getSeverityText(selectedDisease?.severity || "")}</Text>
+              <Text style={styles.modalSection}>Signalé par :</Text>
+              <Text style={styles.modalText}>{selectedDisease?.reportedBy?.name} ({selectedDisease?.reportedBy?.email})</Text>
+              <Text style={styles.modalSection}>Date :</Text>
+              <Text style={styles.modalText}>{selectedDisease?.reportedDate && formatDate(selectedDisease.reportedDate)}</Text>
+              <TouchableOpacity style={styles.closeButton} onPress={closeDiseaseDetail}>
+                <Text style={styles.closeButtonText}>Fermer</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -332,18 +531,34 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  diseaseHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
   diseaseName: {
     fontSize: 18,
     fontWeight: "600",
     color: "#1e293b",
     flex: 1,
     marginRight: 8,
+  },
+  diseaseDesc: {
+    fontSize: 14,
+    color: "#475569",
+    marginBottom: 8,
+  },
+  diseaseSymptoms: {
+    fontSize: 13,
+    color: "#3b82f6",
+    marginBottom: 12,
+  },
+  testButton: {
+    backgroundColor: "#2563eb",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  testButtonText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 14,
   },
   severityBadge: {
     backgroundColor: "#fef3c7",
@@ -356,25 +571,6 @@ const styles = StyleSheet.create({
     color: "#92400e",
     fontWeight: "500",
   },
-  diseaseDescription: {
-    fontSize: 14,
-    color: "#475569",
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  sectorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectorText: {
-    fontSize: 13,
-    color: "#64748b",
-    marginLeft: 8,
-  },
-  symptomsSection: {
-    marginBottom: 12,
-  },
   preventionSection: {
     marginBottom: 8,
   },
@@ -383,11 +579,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#1e293b",
     marginBottom: 6,
-  },
-  symptomText: {
-    fontSize: 13,
-    color: "#ef4444",
-    marginBottom: 2,
   },
   preventionText: {
     fontSize: 13,
@@ -444,5 +635,66 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: "#64748b",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 24,
+    width: "90%",
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#1e293b",
+    marginBottom: 8,
+  },
+  modalDesc: {
+    fontSize: 16,
+    color: "#64748b",
+    marginBottom: 12,
+  },
+  modalSection: {
+    fontWeight: "bold",
+    color: "#2563eb",
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  modalSymptom: {
+    fontSize: 15,
+    color: "#1e293b",
+    marginBottom: 2,
+  },
+  modalText: {
+    fontSize: 15,
+    color: "#64748b",
+    marginBottom: 2,
+  },
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: "#2563eb",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  closeButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  symptomList: {
+    marginBottom: 8,
+    marginLeft: 8,
+  },
+  symptomItem: {
+    fontSize: 13,
+    color: "#3b82f6",
+    marginBottom: 2,
   },
 })

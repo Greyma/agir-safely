@@ -298,7 +298,7 @@ const seedData = async () => {
         notes: 'Check rotor monthly.'
       },
       {
-        name: 'Safety Shower',
+        name: 'Pompe anti incendie',
         type: 'Emergency Equipment',
         model: 'SS-1000',
         serialNumber: 'EQ-EMERG-001',

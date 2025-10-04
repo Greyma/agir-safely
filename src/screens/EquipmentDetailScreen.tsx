@@ -87,7 +87,7 @@ Prochaine maintenance: ${equipment.prochaineMaintenance}
 INTERVENTIONS RÉCENTES:
 ${interventions.map(int => `
 - ${int.date} | ${int.type}
-  Technicien: ${int.technicien}
+  Technicien
   Description: ${int.description}
   Durée: ${int.duree}
 `).join('')}
@@ -192,21 +192,17 @@ Total interventions: ${interventions.length}
           </View>
         </View>
 
-        <View style={styles.historyCard}>
-          <View style={styles.historyHeader}>
-            <Text style={styles.cardTitle}>Historique des Interventions</Text>
-            <Text style={styles.historyCount}>{(interventions || []).length} interventions</Text>
-          </View>
-
-          {(interventions || []).map((intervention) => (
+        <View style={styles.interventionsCard}>
+          <Text style={styles.cardTitle}>Historique des Interventions</Text>
+          {interventions.map((intervention) => (
             <View key={intervention.id} style={styles.interventionItem}>
               <View style={styles.interventionHeader}>
                 <Text style={styles.interventionDate}>{intervention.date}</Text>
                 <View style={styles.interventionTypeBadge}>
-                  <Text style={styles.interventionTypeText}>{intervention.type}</Text>
+                  <Text style={styles.interventionType}>{intervention.type}</Text>
                 </View>
               </View>
-              <Text style={styles.interventionTechnicien}>Technicien: {intervention.technicien}</Text>
+              <Text style={styles.interventionTechnicien}>Technicien :</Text>
               <Text style={styles.interventionDescription}>{intervention.description}</Text>
               <View style={styles.interventionFooter}>
                 <View style={styles.durationContainer}>
@@ -450,7 +446,7 @@ const styles = StyleSheet.create({
     color: "#2563eb",
     fontWeight: "500",
   },
-  historyCard: {
+  interventionsCard: {
     backgroundColor: "white",
     padding: 16,
     borderRadius: 12,
@@ -460,16 +456,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
-  },
-  historyHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  historyCount: {
-    fontSize: 14,
-    color: "#64748b",
   },
   interventionItem: {
     borderLeftWidth: 3,
@@ -497,7 +483,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 10,
   },
-  interventionTypeText: {
+  interventionType: {
     fontSize: 12,
     color: "#1d4ed8",
     fontWeight: "500",

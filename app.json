@@ -4,10 +4,10 @@
     "slug": "agir-safely",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./public/placeholder-logo.png",
+    "icon": "./public/logo.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./public/placeholder-logo.png",
+      "image": "./public/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#2563eb"
     },
@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./public/placeholder-logo.png",
+        "foregroundImage": "./public/logo.png",
         "backgroundColor": "#2563eb"
       },
       "package": "com.agirsafely.app",
@@ -33,7 +33,7 @@
       ]
     },
     "web": {
-      "favicon": "./public/placeholder-logo.png"
+      "favicon": "./public/logo.png"
     },
     "sdkVersion": "53.0.0",
     "platforms": [
@@ -42,7 +42,7 @@
       "web"
     ],
     "plugins": [
-      
+      "expo-web-browser"
     ]
   }
 }

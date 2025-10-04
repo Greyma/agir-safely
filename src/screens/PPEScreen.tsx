@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { MaterialIcons } from '@expo/vector-icons'
-import { apiService } from "../services/api"
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 interface PPE {
   _id: string
@@ -19,15 +19,143 @@ interface PPE {
   location: string
   quantity: number
   unit: string
-  assignedTo: {
+  assignedTo?: {
     name: string
     email: string
   }
   lastInspection: string
   nextInspection: string
+  safetyStandard?: string
+  usageCondition?: string
+  lifespan?: string
 }
 
 const zones = ["Toutes", "Atelier A", "Zone de découpe", "Production", "Laboratoire"]
+
+// Local storage key
+const PPE_STORAGE_KEY = 'local_ppe_data_v1'
+
+// Random helpers
+const randomOf = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
+const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
+const addDays = (date: Date, days: number) => {
+  const d = new Date(date)
+  d.setDate(d.getDate() + days)
+  return d
+}
+const toISO = (d: Date) => d.toISOString()
+
+function generateFromTemplate() {
+  // Templates from user's list
+  const templates = [
+    {
+      name: "Casques de sécurité",
+      category: "Casque",
+      safetyStandard: "EN 397",
+      usageCondition: "Port obligatoire dans toutes les zones à risques",
+      lifespan: "3 à 5 ans",
+    },
+    {
+      name: "Chaussures de sécurité",
+      category: "Chaussures",
+      safetyStandard: "EN ISO 20345",
+      usageCondition: "Port obligatoire en zones à risques",
+      lifespan: "2 ans",
+    },
+    {
+      name: "Lunettes de protection",
+      category: "Lunettes",
+      safetyStandard: "EN 166",
+      usageCondition: "Obligatoires lors de la manipulation de produits chimiques, travaux de meulage, soudure légère ou projection de particules",
+      lifespan: "2 à 3 ans",
+    },
+    {
+      name: "Gants de protection",
+      category: "Gants",
+      safetyStandard: "EN 388",
+      usageCondition: "Toute activité présentant un risque de coupure, d’abrasion, de perforation ou d’écrasement léger",
+      lifespan: "3 à 6 mois",
+    },
+    {
+      name: "Combinaisons de protection",
+      category: "Combinaison",
+      safetyStandard: "EN 14605",
+      usageCondition: "Port obligatoire pour travaux en laboratoire, nettoyage chimique, interventions sur produits dangereux",
+      lifespan: "2 ans",
+    },
+    {
+      name: "Harnais de sécurité",
+      category: "Harnais",
+      safetyStandard: "EN 361",
+      usageCondition: "Obligatoire pour tout travail en hauteur >2 m",
+      lifespan: "10 ans maximum",
+    },
+    {
+      name: "Serre-tête antibruit",
+      category: "Antibruit",
+      safetyStandard: "EN 352-1",
+      usageCondition: "Obligatoire dans les zones où le bruit ambiant est élevé",
+      lifespan: "2 à 3 ans",
+    },
+    {
+      name: "Masques respiratoires",
+      category: "Masque",
+      safetyStandard: "EN 136",
+      usageCondition: "Port obligatoire dans zones à risque de poussières fines",
+      lifespan: "5 à 10 ans",
+    },
+  ]
+
+  const manufacturers = ["3M", "Honeywell", "Uvex", "MSA", "Delta Plus", "JSP"]
+  const units = ["pièces", "paires", "unités"]
+  const conditions = ["excellent", "good", "fair", "poor", "damaged"]
+  const statuses = ["available", "assigned", "maintenance", "retired", "lost"]
+  const locs = zones.filter(z => z !== "Toutes")
+
+  const now = new Date()
+
+  const items: PPE[] = templates.map((t, index) => {
+    const manufacturer = randomOf(manufacturers)
+    const model = `${t.category.substring(0, 3).toUpperCase()}-${randomInt(100, 999)}`
+    const serialNumber = `${t.category.substring(0, 2).toUpperCase()}${Date.now()}${randomInt(100, 999)}`
+    const condition = randomOf(conditions)
+    const status = condition === "damaged" ? "maintenance" : randomOf(statuses)
+    const location = randomOf(locs)
+    const quantity = randomInt(3, 20)
+    const unit = randomOf(units)
+
+    const last = addDays(now, -randomInt(10, 120))
+    const next = addDays(last, randomInt(15, 120))
+
+    const maybeAssigned = Math.random() < 0.4
+    const assignedTo = maybeAssigned
+      ? { name: randomOf(["Alice Martin", "Jean Dupont", "Karim El Amrani", "Sofia Ben Ali"]), email: `user${randomInt(1, 99)}@example.com` }
+      : undefined
+
+    return {
+      _id: `ppe_${index + 1}`,
+      name: t.name,
+      category: t.category,
+      description: `${t.name} - ${t.usageCondition}. Conforme à la norme ${t.safetyStandard}.`,
+      manufacturer,
+      model,
+      serialNumber,
+      condition,
+      status,
+      location,
+      quantity,
+      unit,
+      assignedTo,
+      lastInspection: toISO(last),
+      nextInspection: toISO(next),
+      safetyStandard: t.safetyStandard,
+      usageCondition: t.usageCondition,
+      lifespan: t.lifespan,
+    }
+  })
+
+  return items
+}
 
 export default function PPEScreen({ navigation }: any) {
   const [ppeList, setPpeList] = useState<PPE[]>([])
@@ -35,16 +163,34 @@ export default function PPEScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
+  const loadFromStorage = async () => {
+    const raw = await AsyncStorage.getItem(PPE_STORAGE_KEY)
+    if (!raw) return null
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed as PPE[] : null
+    } catch {
+      return null
+    }
+  }
+
+  const saveToStorage = async (data: PPE[]) => {
+    await AsyncStorage.setItem(PPE_STORAGE_KEY, JSON.stringify(data))
+  }
+
   const fetchPPE = async () => {
     try {
       setLoading(true)
-      const data = await apiService.getPPE()
-      // Ensure data is always an array
-      setPpeList(Array.isArray(data) ? data : [])
+      let data = await loadFromStorage()
+      if (!data || data.length === 0) {
+        data = generateFromTemplate()
+        await saveToStorage(data)
+      }
+      setPpeList(data)
     } catch (error) {
-      console.error('Error fetching PPE:', error)
+      console.error('Error loading PPE from storage:', error)
       Alert.alert('Erreur', 'Impossible de charger les EPI')
-      setPpeList([]) // Set empty array on error
+      setPpeList([])
     } finally {
       setLoading(false)
     }
@@ -134,18 +280,25 @@ export default function PPEScreen({ navigation }: any) {
         text: "Signaler",
         onPress: async () => {
           try {
-            await apiService.reportPPEDamage(ppeId, {
-              description: "Dommage signalé par l'utilisateur",
-              severity: "moderate"
+            // Update local item
+            const updated = ppeList.map(item => {
+              if (item._id !== ppeId) return item
+              const now = new Date()
+              return {
+                ...item,
+                condition: "damaged",
+                status: "maintenance",
+                lastInspection: toISO(now),
+                nextInspection: toISO(addDays(now, 30)),
+              }
             })
-            
+            setPpeList(updated)
+            await saveToStorage(updated)
+
             Alert.alert(
               "Dommage signalé",
-              "Le signalement a été envoyé aux responsables. Une notification leur a été envoyée."
+              "Le signalement a été enregistré localement."
             )
-            
-            // Refresh the PPE list
-            await fetchPPE()
           } catch (error) {
             console.error('Error reporting damage:', error)
             Alert.alert('Erreur', 'Impossible de signaler le dommage')
@@ -210,7 +363,8 @@ export default function PPEScreen({ navigation }: any) {
       {item.assignedTo && (
         <View style={styles.assignedContainer}>
           <Text style={styles.assignedLabel}>Assigné à:</Text>
-          <Text style={styles.assignedName}>{item.assignedTo.name}</Text>
+          {}
+          {}
         </View>
       )}
 
@@ -237,7 +391,7 @@ export default function PPEScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Équipements de Protection</Text>
+        <Text style={styles.title}>Équipement de Protection Individuelle</Text>
       </View>
 
       <View style={styles.alertsContainer}>
