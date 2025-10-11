@@ -87,7 +87,7 @@ Prochaine maintenance: ${equipment.prochaineMaintenance}
 INTERVENTIONS RÉCENTES:
 ${interventions.map(int => `
 - ${int.date} | ${int.type}
-  Technicien
+  Technicien: ${int.technicien}
   Description: ${int.description}
   Durée: ${int.duree}
 `).join('')}
@@ -148,27 +148,18 @@ Total interventions: ${interventions.length}
       <ScrollView style={styles.content}>
         <View style={styles.header}>
           <View style={styles.equipmentInfo}>
-            <Text style={styles.equipmentName}>{equipment.nom}</Text>
-            <Text style={styles.equipmentType}>{equipment.type}</Text>
-            <Text style={styles.equipmentZone}>{equipment.zone}</Text>
+            <Text style={styles.equipmentName}>Équipement d'urgence</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(equipment.etat) }]}>
-            <MaterialIcons name={getStatusIcon(equipment.etat)} size={16} color="white" />
-            <Text style={styles.statusText}>{equipment.etat}</Text>
-          </View>
+          <MaterialIcons name="build" size={24} color="#2563eb" />
         </View>
 
         <View style={styles.maintenanceCard}>
           <Text style={styles.cardTitle}>Informations de Maintenance</Text>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Dernière maintenance:</Text>
-            <Text style={styles.infoValue}>{equipment.derniereMaintenance}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Prochaine maintenance:</Text>
-            <Text style={[styles.infoValue, equipment.alerteActive && styles.infoValueAlert]}>
-              {equipment.prochaineMaintenance}
-            </Text>
           </View>
           {equipment.alerteActive && (
             <View style={styles.alertSection}>
@@ -192,17 +183,22 @@ Total interventions: ${interventions.length}
           </View>
         </View>
 
-        <View style={styles.interventionsCard}>
-          <Text style={styles.cardTitle}>Historique des Interventions</Text>
-          {interventions.map((intervention) => (
+        {/* Replace old interventionsCard with the new historyCard block */}
+        <View style={styles.historyCard}>
+          <View style={styles.historyHeader}>
+            <Text style={styles.cardTitle}>Historique des Interventions</Text>
+            <Text style={styles.historyCount}>{(interventions || []).length} interventions</Text>
+          </View>
+
+          {(interventions || []).map((intervention) => (
             <View key={intervention.id} style={styles.interventionItem}>
               <View style={styles.interventionHeader}>
                 <Text style={styles.interventionDate}>{intervention.date}</Text>
                 <View style={styles.interventionTypeBadge}>
-                  <Text style={styles.interventionType}>{intervention.type}</Text>
+                  <Text style={styles.interventionTypeText}>{intervention.type}</Text>
                 </View>
               </View>
-              <Text style={styles.interventionTechnicien}>Technicien :</Text>
+              <Text style={styles.interventionTechnicien}>Technicien: {intervention.technicien}</Text>
               <Text style={styles.interventionDescription}>{intervention.description}</Text>
               <View style={styles.interventionFooter}>
                 <View style={styles.durationContainer}>
@@ -446,7 +442,7 @@ const styles = StyleSheet.create({
     color: "#2563eb",
     fontWeight: "500",
   },
-  interventionsCard: {
+  historyCard: {
     backgroundColor: "white",
     padding: 16,
     borderRadius: 12,
@@ -456,6 +452,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  historyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  historyCount: {
+    fontSize: 14,
+    color: "#64748b",
   },
   interventionItem: {
     borderLeftWidth: 3,
@@ -483,7 +489,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 10,
   },
-  interventionType: {
+  interventionTypeText: {
     fontSize: 12,
     color: "#1d4ed8",
     fontWeight: "500",

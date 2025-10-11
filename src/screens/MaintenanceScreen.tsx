@@ -122,7 +122,19 @@ export default function MaintenanceScreen({ navigation }: any) {
   const renderEquipment = ({ item }: { item: Equipment }) => (
     <TouchableOpacity
       style={styles.equipmentCard}
-      onPress={() => navigation.navigate("EquipmentDetail", { equipment: item })}
+      onPress={() =>
+        navigation.navigate("EquipmentDetail", {
+          equipment: {
+            nom: item.name,
+            type: item.type,
+            zone: item.location,
+            etat: getStatusText(item.status), // functional -> "Fonctionnel", etc.
+            derniereMaintenance: formatDate(item.lastMaintenance),
+            prochaineMaintenance: formatDate(item.nextMaintenance),
+            alerteActive: (item.alerts || []).some(a => a.isActive),
+          },
+        })
+      }
     >
       <View style={styles.equipmentHeader}>
         <View style={styles.equipmentInfo}>

@@ -23,6 +23,7 @@ import PdfViewerScreen from './src/screens/PdfViewerScreen';
 import BoxQuestionScreen from './src/screens/BoxQuestionScreen';
 import QuestionResponsesScreen from './src/screens/QuestionResponsesScreen';
 import LoginScreen from './src/screens/LoginScreen';
+import EquipmentDetailScreen from './src/screens/EquipmentDetailScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -34,6 +35,7 @@ export type RootStackParamList = {
   AddAccident: undefined;
   QuestionResponses: { questionId: string };
   BoxQuestion: undefined;
+  EquipmentDetail: { equipment: any };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -122,6 +124,7 @@ function RootNavigator() {
           <Stack.Screen name="DiseaseTest" component={DiseaseTestScreen} />
           <Stack.Screen name="Appointment" component={AppointmentScreen} />
           <Stack.Screen name="AddAccident" component={AddAccidentScreen} />
+          <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} />
         </>
       )}
     </Stack.Navigator>
