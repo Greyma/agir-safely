@@ -4,13 +4,13 @@ import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Alert, M
 import { MaterialIcons } from "@expo/vector-icons"
 import * as ImagePicker from "expo-image-picker"
 import * as DocumentPicker from "expo-document-picker"
-import * as FileSystem from 'expo-file-system'
-import * as Sharing from 'expo-sharing'
+import * as FileSystem from "expo-file-system"
+import * as Sharing from "expo-sharing"
 import { useQuestions } from "../contexts/QuestionsContext"
 
 export default function QuestionResponsesScreen({ route, navigation }: any) {
   const { questionId } = route.params
-  const { questions, addReply } = useQuestions()
+  const { questions, addReply, deleteReply } = useQuestions() // <— include deleteReply
   const question = questions.find(q => q.id === questionId)
 
   const [text, setText] = useState("")
@@ -32,8 +32,23 @@ export default function QuestionResponsesScreen({ route, navigation }: any) {
   }
 
   const pickPdf = async () => {
-    const res = await DocumentPicker.getDocumentAsync({ type: ["application/pdf"] })
-    if (res.type === "success") setPdf({ name: res.name, uri: res.uri })
+    try {
+      const res: any = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf"],
+        copyToCacheDirectory: true,
+        multiple: false
+      })
+      if (res.canceled) return
+
+      // Handle both legacy (res.uri) and new (res.assets[0]) shapes
+      const doc = res.assets ? res.assets[0] : res
+      if (!doc?.uri) return
+
+      const name = (doc.name || "document.pdf").replace(/[/\\?%*:|"<>]/g, "_")
+      setPdf({ name, uri: doc.uri })
+    } catch (e) {
+      Alert.alert("Erreur", "Sélection du PDF annulée")
+    }
   }
 
   const submit = () => {
@@ -42,28 +57,55 @@ export default function QuestionResponsesScreen({ route, navigation }: any) {
       return
     }
     addReply(question.id, { text: text.trim(), imageUri, pdf })
-    setText(""); setImageUri(undefined); setPdf(undefined)
+    setText("")
+    setImageUri(undefined)
+    setPdf(undefined)
   }
 
   const openImage = (uri: string) => setPreviewImage(uri)
 
-  const openPdf = (pdf: { name: string; uri: string }) => {
-    navigation.navigate("PdfViewer", { pdfUrl: pdf.uri, title: pdf.name })
-  }
-
   const downloadPdf = async (pdf: { name: string; uri: string }) => {
     try {
-      const fileName = pdf.name.replace(/\s+/g, '_') + '.pdf'
-      const dest = FileSystem.documentDirectory + fileName
-      const { uri } = await FileSystem.downloadAsync(pdf.uri, dest)
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri)
-      } else {
-        Alert.alert("Téléchargé", "PDF enregistré: " + uri)
+      // For local files just share (already on device)
+      if (pdf.uri.startsWith("file://") || pdf.uri.startsWith("content://")) {
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(pdf.uri)
+        } else {
+          Alert.alert("Info", "PDF local déjà disponible.")
+        }
+        return
       }
-    } catch (e) {
-      Alert.alert("Erreur", "Impossible de télécharger le PDF")
+      if (pdf.uri.startsWith("http://") || pdf.uri.startsWith("https://")) {
+        const fileName = pdf.name.replace(/\s+/g, "_")
+        const dest = FileSystem.documentDirectory + fileName
+        const { uri } = await FileSystem.downloadAsync(pdf.uri, dest)
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri)
+        } else {
+          Alert.alert("Téléchargé", "PDF enregistré: " + uri)
+        }
+        return
+      }
+      Alert.alert("Erreur", "Type d'URI non supporté.")
+    } catch (e: any) {
+      console.log("PDF download/share error:", e?.message)
+      Alert.alert("Erreur", "Impossible de télécharger/partager ce PDF.")
     }
+  }
+
+  const confirmDeleteReply = (replyId: string) => {
+    Alert.alert(
+      "Supprimer la réponse",
+      "Voulez-vous supprimer cette réponse ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+            style: "destructive",
+            onPress: () => deleteReply(question.id, replyId)
+        }
+      ]
+    )
   }
 
   return (
@@ -105,37 +147,35 @@ export default function QuestionResponsesScreen({ route, navigation }: any) {
         contentContainerStyle={{ padding: 16, paddingTop: 0 }}
         renderItem={({ item }) => (
           <View style={styles.replyCard}>
-            <Text style={styles.replyAuthor}>Anonyme</Text>
+            <View style={styles.replyCardHeader}>
+              <Text style={styles.replyAuthor}>Anonyme</Text>
+              <TouchableOpacity
+                onPress={() => confirmDeleteReply(item.id)}
+                style={styles.deleteReplyBtn}
+              >
+                <MaterialIcons name="delete" size={18} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
             {item.text ? <Text style={styles.replyText}>{item.text}</Text> : null}
-
             {(item.imageUri || item.pdf) && (
               <View style={styles.attachmentsRow}>
                 {item.imageUri && (
                   <TouchableOpacity
                     style={styles.attachmentBadge}
-                    onPress={() => openImage(item.imageUri!)}
+                    onPress={() => setPreviewImage(item.imageUri!)}
                   >
                     <MaterialIcons name="image" size={16} color="#2563eb" />
                     <Text style={styles.attachmentText}>Voir image</Text>
                   </TouchableOpacity>
                 )}
                 {item.pdf && (
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity
-                      style={[styles.attachmentBadge, { backgroundColor: '#fee2e2' }]}
-                      onPress={() => openPdf(item.pdf!)}
-                    >
-                      <MaterialIcons name="picture-as-pdf" size={16} color="#dc2626" />
-                      <Text style={[styles.attachmentText, { color: '#b91c1c' }]}>Ouvrir PDF</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.attachmentBadge, { backgroundColor: '#f1f5f9' }]}
-                      onPress={() => downloadPdf(item.pdf!)}
-                    >
-                      <MaterialIcons name="download" size={16} color="#2563eb" />
-                      <Text style={styles.attachmentText}>Télécharger</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity
+                    style={[styles.attachmentBadge, styles.pdfBadge]}
+                    onPress={() => downloadPdf(item.pdf!)}
+                  >
+                    <MaterialIcons name="picture-as-pdf" size={16} color="#dc2626" />
+                    <Text style={styles.pdfAttachmentText}>PDF</Text>
+                  </TouchableOpacity>
                 )}
               </View>
             )}
@@ -179,6 +219,12 @@ const styles = StyleSheet.create({
   sendBtn: { marginLeft: "auto", backgroundColor: "#2563eb", padding: 10, borderRadius: 8 },
   attachPreview: { marginTop: 8, fontSize: 12, color: "#475569" },
   replyCard: { backgroundColor: "white", padding: 12, borderRadius: 10, marginBottom: 12 },
+  replyCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4
+  },
   replyAuthor: { fontSize: 12, fontWeight: "600", color: "#2563eb", marginBottom: 4 },
   replyText: { fontSize: 14, color: "#1e293b" },
   iconsRow: { flexDirection: "row", gap: 6, marginTop: 6 },
@@ -203,6 +249,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#0369a1'
+  },
+  pdfBadge: {
+    backgroundColor: '#fee2e2',
+  },
+  pdfAttachmentText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#b91c1c',
   },
   imageModalOverlay: {
     flex: 1,
@@ -230,5 +284,9 @@ const styles = StyleSheet.create({
     right: 8,
     zIndex: 10,
     padding: 6
-  }
+  },
+  deleteReplyBtn: {
+    padding: 4,
+    borderRadius: 6
+  },
 })

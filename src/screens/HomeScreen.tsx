@@ -6,7 +6,7 @@ export default function HomeScreen({ navigation }: any) {
     <View style={styles.container}>
       <Text style={styles.title}>Bienvenue</Text>
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Tabs", { screen: "Accidents" })}>
-        <Text style={styles.buttonText}>Accidents</Text>
+        <Text style={styles.buttonText}>Accidentologie</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Tabs", { screen: "Chimiques" })}>
         <Text style={styles.buttonText}>Produits Chimiques</Text>

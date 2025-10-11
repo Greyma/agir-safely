@@ -106,11 +106,37 @@ export default function AccidentologyScreen({ navigation }: any) {
     }
   }
 
+  const getTypeText = (type: string) => {
+    switch ((type || "").toLowerCase()) {
+      case "slip": return "Glissade"
+      case "fall": return "Chute"
+      case "cut": return "Coupure"
+      case "burn": return "Brûlure"
+      case "chemical": return "Chimique"
+      case "electrical": return "Électrique"
+      case "mechanical": return "Mécanique"
+      case "other": return "Autre"
+      default: return type
+    }
+  }
+
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString)
       return date.toLocaleDateString('fr-FR')
     } catch (error) {
+      return 'Date invalide'
+    }
+  }
+
+  // Add this helper for date + hour like “12/10/2025 vers 14:30”
+  const formatDateWithTime = (dateString: string) => {
+    try {
+      const d = new Date(dateString)
+      const date = d.toLocaleDateString('fr-FR')
+      const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+      return `${date} vers ${time}`
+    } catch {
       return 'Date invalide'
     }
   }
@@ -125,6 +151,15 @@ export default function AccidentologyScreen({ navigation }: any) {
     const severityValue = isFrench ? item.Gravité : item.severity;
     const typeValue = isFrench ? item.Type : item.type;
     const statusValue = isFrench ? item.Statut : item.status;
+
+    const hideSeverity =
+      typeof severityValue === 'string' &&
+      ['moderate', 'moyenne'].includes(severityValue.toLowerCase());
+
+    const hideStatus =
+      typeof statusValue === 'string' &&
+      (statusValue.toLowerCase() === 'reported' || statusValue.toLowerCase().includes('signal'));
+
     // When coming from backend-created items, we appended consequences/causes into description.
     // Extract them so we can render with the same colors as French-format entries.
     let baseDescription = item.description || "";
@@ -160,10 +195,11 @@ export default function AccidentologyScreen({ navigation }: any) {
           <View style={styles.headerLeft}>
             <MaterialIcons name="event" size={16} color="#64748b" />
             <Text style={styles.accidentDate}>
-              {isFrench ? item.Date_et_heure : (item.date ? formatDate(item.date) : "")}
+              {isFrench ? item.Date_et_heure : (item.date ? formatDateWithTime(item.date) : "")}
             </Text>
           </View>
-          {severityValue && (
+          {/* Hide severity chip when 'Moyenne'/'moderate' */}
+          {severityValue && !hideSeverity && (
             <View style={[styles.chip, { backgroundColor: getSeverityColor(severityValue) }]}>
               <MaterialIcons name="report" size={12} color="#fff" />
               <Text style={styles.chipText}>{getSeverityText(severityValue)}</Text>
@@ -180,12 +216,15 @@ export default function AccidentologyScreen({ navigation }: any) {
           </View>
           <View style={styles.metaChips}>
             {typeValue && (
-              <View style={[styles.chipSoft, { backgroundColor: '#eef2ff' }]}> 
+              <View style={[styles.chipSoft, { backgroundColor: '#eef2ff' }]}>
                 <MaterialIcons name="category" size={12} color="#4f46e5" />
-                <Text style={[styles.chipSoftText, { color: '#4f46e5' }]}>{typeValue}</Text>
+                <Text style={[styles.chipSoftText, { color: '#4f46e5' }]}>
+                  {isFrench ? typeValue : getTypeText(typeValue)}
+                </Text>
               </View>
             )}
-            {statusValue && (
+            {/* Hide status chip when 'reported'/'Signalé' */}
+            {statusValue && !hideStatus && (
               <View style={[styles.chipSoft, { backgroundColor: '#ecfeff' }]}> 
                 <MaterialIcons name="info" size={12} color="#0891b2" />
                 <Text style={[styles.chipSoftText, { color: '#0891b2' }]}>{statusValue}</Text>

@@ -19,17 +19,11 @@ const DebugScreen: React.FC = () => {
     setIsLoading(true);
     try {
       const info: any = {};
-
-      // Network configuration
       info.networkConfig = getNetworkConfig();
       info.currentApiUrl = apiService.getCurrentApiUrl();
 
-      // Test network connections
-      const urls = [
-        'http://192.168.1.7:5000',
-        'http://10.0.2.2:5000',
-        'http://localhost:5000',
-      ];
+      
+      const urls = [info.networkConfig.baseUrl];
 
       info.networkTests = {};
       for (const url of urls) {
@@ -179,4 +173,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DebugScreen; 
+export default DebugScreen;

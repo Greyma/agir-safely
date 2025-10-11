@@ -2,6 +2,8 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { QuestionsProvider } from './src/contexts/QuestionsContext';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { View, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -48,9 +50,22 @@ function QuestionsStack() {
 
 function TabNavigator() {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
+    <Tab.Navigator
+      screenOptions={({ navigation }) => ({
+        headerShown: true,
+        headerTitleAlign: 'center',
+        headerLeft: () => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Home')}
+            style={{ marginLeft: 16 }}
+          >
+            <MaterialIcons name="home" size={24} color="#2563eb" />
+          </TouchableOpacity>
+        ),
+      })}
+    >
       <Tab.Screen
-        name="Accidents"
+        name="Accidentologie"
         component={AccidentologyScreen}
         options={{ tabBarIcon: ({ color, size }) => <MaterialIcons name="warning" color={color} size={size} /> }}
       />
@@ -87,7 +102,12 @@ function RootNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return null; // or a splash / loader
+    return (
+      <View style={styles.splash}>
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text style={styles.splashText}>Chargement...</Text>
+      </View>
+    );
   }
 
   return (
@@ -112,9 +132,11 @@ const App = () => {
   return (
     <AuthProvider>
       <QuestionsProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
+        <SafeAreaProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </SafeAreaProvider>
       </QuestionsProvider>
     </AuthProvider>
   );
@@ -198,4 +220,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  splash: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc'
+  },
+  splashText: {
+    marginTop: 12,
+    color: '#2563eb',
+    fontWeight: '600'
+  }
 });
